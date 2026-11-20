@@ -6,7 +6,7 @@ pipeline {
 
     environment {
         APP_NAME     = 'aceest-fitness-app'
-        APP_VERSION  = 'V1' 
+        APP_VERSION  = 'V1'
         DEV_URL      = "http://localhost:5001"
         TEST_URL     = "http://localhost:5002"
         STAGE_URL    = "http://localhost:5003"
@@ -31,22 +31,22 @@ pipeline {
 
         stage('Docker Compression Assembly') {
             steps {
-                echo 'Assembling cached container virtualization blocks on Rocky Linux Docker Engine...'
-                sh 'docker build -t ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} .'
+                echo 'Assembling cached container virtualization blocks on Docker Engine...'
+                bat "docker build -t ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ."
             }
         }
 
         stage('Static Lint Analysis') {
             steps {
                 echo 'Validating Python syntax compilation structure inside the Docker Container...'
-                sh 'docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python -m py_compile app.py'
+                bat "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python -m py_compile app.py"
             }
         }
 
         stage('Automated Pytest Execution') {
             steps {
                 echo 'Invoking component assertion tests inside clean container context...'
-                sh 'docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} pytest test_app.py'
+                bat "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} pytest test_app.py"
             }
         }
 
@@ -54,10 +54,11 @@ pipeline {
             when { branch 'Develop' }
             steps {
                 echo "Deploying to DEV environment at ${env.DEV_URL}..."
-                sh '''
-                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                powershell """
+                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
+                    if (\$containers) { docker stop \$containers }
                     docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-dev-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
-                '''
+                """
             }
         }
 
@@ -65,10 +66,11 @@ pipeline {
             when { branch 'Test' }
             steps {
                 echo "Deploying to TEST environment at ${env.TEST_URL}..."
-                sh '''
-                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                powershell """
+                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
+                    if (\$containers) { docker stop \$containers }
                     docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-test-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
-                '''
+                """
             }
         }
 
@@ -76,21 +78,23 @@ pipeline {
             when { branch 'Stage' }
             steps {
                 echo "Deploying to STAGING environment at ${env.STAGE_URL}..."
-                sh '''
-                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                powershell """
+                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
+                    if (\$containers) { docker stop \$containers }
                     docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-stage-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
-                '''
+                """
             }
         }
 
         stage('Deploy to Prod') {
-            when { branch 'main' } // Change this to 'Master' if that is your production branch name
+            when { branch 'main' }
             steps {
                 echo "Deploying to PRODUCTION environment at ${env.PROD_URL}..."
-                sh '''
-                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                powershell """
+                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
+                    if (\$containers) { docker stop \$containers }
                     docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-prod-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
-                '''
+                """
             }
         }
     }
