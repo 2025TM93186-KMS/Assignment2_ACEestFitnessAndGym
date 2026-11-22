@@ -6,10 +6,9 @@ pipeline {
 
     environment {
         APP_NAME     = 'aceest-fitness-app'
-        APP_VERSION  = 'V1' 
-        HUB_USER      = 'devkg1'   // Docker Hub username
-        SONAR_SCANNER = '/opt/sonar-scanner/bin/sonar-scanner'
-        K8S_NS        = 'aceest'
+        APP_VERSION  = 'V1'
+        HUB_USER     = 'devkg1'   // Docker Hub username
+        K8S_NS       = 'aceest'
         DEV_URL      = "http://localhost:5001"
         TEST_URL     = "http://localhost:5002"
         STAGE_URL    = "http://localhost:5003"
@@ -70,8 +69,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo 'Running static code analysis on SonarQube...'
-                withSonarQubeEnv('SonarQube') {
-                    sh '${SONAR_SCANNER} -Dsonar.projectVersion=${APP_VERSION}'
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh "\"${scannerHome}/bin/sonar-scanner\" -Dsonar.projectVersion=${APP_VERSION}"
+                    }
                 }
             }
         }
@@ -134,7 +136,7 @@ pipeline {
         }
 
         stage('Deploy to Prod') {
-            when { branch 'main' } // Change this to 'Master' if that is your production branch name
+            when { branch 'main' }
             steps {
                 echo "Deploying to PRODUCTION environment at ${env.PROD_URL}..."
                 sh '''
@@ -175,8 +177,6 @@ pipeline {
                     echo 'Rolling back Kubernetes deployment to the last stable revision...'
                     sh 'kubectl -n ${K8S_NS} rollout undo deployment/aceest-rolling || true'
                 }
-            }
-            script {
                 try {
                     if (env.NOTIFICATION_EMAIL) {
                         mail to: "${env.NOTIFICATION_EMAIL}",
