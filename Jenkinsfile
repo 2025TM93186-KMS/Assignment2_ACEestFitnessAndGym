@@ -8,7 +8,7 @@ pipeline {
         APP_NAME     = 'aceest-fitness-app'
         APP_VERSION  = 'V1'
         TAG          = "${APP_VERSION}-${BUILD_NUMBER}"
-        HUB_USER      = 'devkg1'   // your Docker Hub username
+        HUB_USER      = 'DOCKERHUB_USER'   // your Docker Hub username
         SONAR_SCANNER = 'C:\\sonar-scanner\\bin\\sonar-scanner.bat'
         K8S_NS        = 'aceest'
 
@@ -87,6 +87,7 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+            when { branch 'main' }
             steps {
                 echo "Pushing ${HUB_USER}/aceest-fitness:${APP_VERSION} to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
