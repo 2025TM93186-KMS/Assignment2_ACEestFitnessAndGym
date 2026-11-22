@@ -141,7 +141,6 @@ def get_entire_plan():
 # ==========================================
 
 @app.route("/api/v1.1/calculate_calories", methods=["POST"])
-@csrf.exempt
 def calculate_calories():
     data = request.json or {}
     program_name = data.get("program")
@@ -165,7 +164,6 @@ def calculate_calories():
     POST JSON payload: {"name": "Jane", "program": "Muscle Gain (MG)", "age": 25, "weight": 70, "progress": 90}
 """
 @app.route("/api/v1.1/save_client", methods=["POST"])
-@csrf.exempt
 def save_client():
     try:
         data = request.json or {}
