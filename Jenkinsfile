@@ -8,7 +8,7 @@ pipeline {
         APP_NAME     = 'aceest-fitness-app'
         APP_VERSION  = 'V1'
         TAG          = "${APP_VERSION}-${BUILD_NUMBER}"
-        HUB_USER      = 'DOCKERHUB_USER'   // your Docker Hub username
+        HUB_USER      = 'devkg1'   // Docker Hub username
         SONAR_SCANNER = 'C:\\sonar-scanner\\bin\\sonar-scanner.bat'
         K8S_NS        = 'aceest'
 
