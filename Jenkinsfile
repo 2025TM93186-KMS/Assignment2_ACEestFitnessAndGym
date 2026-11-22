@@ -1,8 +1,6 @@
 pipeline {
     agent any
-    triggers {
-        pollSCM('H/2 * * * *')
-    }
+   
 
     environment {
         APP_NAME     = 'aceest-fitness-app'
