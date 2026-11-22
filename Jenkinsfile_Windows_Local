@@ -1,15 +1,16 @@
 pipeline {
     agent any
-    triggers {
-        pollSCM('H/2 * * * *')
-    }
+    //triggers {
+      //  pollSCM('H/2 * * * *')
+    //}
 
     environment {
         APP_NAME     = 'aceest-fitness-app'
         APP_VERSION  = 'V1'
-        HUB_USER      = 'devkg1'   // Docker Hub username
-        SONAR_SCANNER = 'C:\\sonar-scanner\\bin\\sonar-scanner.bat'
-        K8S_NS        = 'aceest'
+        TAG          = "${APP_VERSION}-${BUILD_NUMBER}"
+        HUB_USER     = 'devkg1'
+        K8S_NS       = 'aceest'
+
         DEV_URL      = "http://localhost:5001"
         TEST_URL     = "http://localhost:5002"
         STAGE_URL    = "http://localhost:5003"
@@ -70,8 +71,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo 'Running static code analysis on SonarQube...'
-                withSonarQubeEnv('SonarQube') {
-                    bat "\"${SONAR_SCANNER}\" -Dsonar.projectVersion=${APP_VERSION}"
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\" -Dsonar.projectVersion=${APP_VERSION}"
+                    }
                 }
             }
         }
@@ -179,8 +183,6 @@ pipeline {
                     echo 'Rolling back Kubernetes deployment to the last stable revision...'
                     bat "kubectl -n ${K8S_NS} rollout undo deployment/aceest-rolling || exit /b 0"
                 }
-            }
-            script {
                 try {
                     if (env.NOTIFICATION_EMAIL) {
                         mail to: "${env.NOTIFICATION_EMAIL}",
@@ -193,9 +195,6 @@ pipeline {
                     echo "Unable to dispatch SMTP alert notification: ${mailError.getMessage()}"
                 }
             }
-        }
-        changed {
-            echo 'Things were different before...'
         }
     }
 }
