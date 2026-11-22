@@ -146,10 +146,10 @@
         // Step 3: Implements weight-based calorie calculations instantly
         function calculateCalories() {
             const name = document.getElementById("client-name").value.trim();
-            const age = parseInt(document.getElementById("client-age").value) || 0;
-            const weight = parseFloat(document.getElementById("client-weight").value) || 0;
+            const age = Number.parseInt(document.getElementById("client-age").value) || 0;
+            const weight = Number.parseFloat(document.getElementById("client-weight").value) || 0;
             const program = document.getElementById("my-combobox").value;
-            const adherence = parseInt(document.getElementById("adherence-slider").value) || 0;
+            const adherence = Number.parseInt(document.getElementById("adherence-slider").value) || 0;
 
             // 1. Client-side validation block
             if (!name || !program) {
@@ -189,10 +189,10 @@
         // Step 4: Handles profile data validation notifications
         function saveClient() {
             const name = document.getElementById("client-name").value.trim();
-            const age = parseInt(document.getElementById("client-age").value) || 0;
-            const weight = parseFloat(document.getElementById("client-weight").value) || 0;
+            const age = Number.parseInt(document.getElementById("client-age").value) || 0;
+            const weight = Number.parseFloat(document.getElementById("client-weight").value) || 0;
             const program = document.getElementById("my-combobox").value;
-            const adherence = parseInt(document.getElementById("adherence-slider").value) || 0;
+            const adherence = Number.parseInt(document.getElementById("adherence-slider").value) || 0;
 
             // 1. Client-side validation block
             if (!name || !program) {
