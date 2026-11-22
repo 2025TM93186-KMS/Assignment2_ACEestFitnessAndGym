@@ -7,6 +7,11 @@ pipeline {
     environment {
         APP_NAME     = 'aceest-fitness-app'
         APP_VERSION  = 'V1'
+        TAG          = "${APP_VERSION}-${BUILD_NUMBER}"
+        HUB_USER      = 'DOCKERHUB_USER'   // your Docker Hub username
+        SONAR_SCANNER = 'C:\\sonar-scanner\\bin\\sonar-scanner.bat'
+        K8S_NS        = 'aceest'
+
         DEV_URL      = "http://localhost:5001"
         TEST_URL     = "http://localhost:5002"
         STAGE_URL    = "http://localhost:5003"
@@ -47,6 +52,52 @@ pipeline {
             steps {
                 echo 'Invoking component assertion tests inside clean container context...'
                 bat "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} pytest test_app.py"
+            }
+        }
+
+        stage('Coverage Report') {
+            steps {
+                echo 'Generating coverage report for SonarQube...'
+                bat """
+                    docker rm -f aceest-cov-${BUILD_NUMBER} 2>nul
+                    docker run --name aceest-cov-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} sh -c "pip install -q pytest-cov && pytest -q --cov=app --cov-report=xml:coverage.xml test_app.py"
+                    set RC=%ERRORLEVEL%
+                    docker cp aceest-cov-${BUILD_NUMBER}:/app/coverage.xml .
+                    docker rm -f aceest-cov-${BUILD_NUMBER}
+                    exit /b %RC%
+                """
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                echo 'Running static code analysis on SonarQube...'
+                withSonarQubeEnv('SonarQube') {
+                    bat "\"${SONAR_SCANNER}\" -Dsonar.projectVersion=${APP_VERSION}"
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo "Pushing ${HUB_USER}/aceest-fitness:${APP_VERSION} to Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
+                    bat 'echo %P%| docker login -u %U% --password-stdin'
+                }
+                bat """
+                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
+                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}
+                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
+                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}
+                """
             }
         }
 
@@ -97,6 +148,18 @@ pipeline {
                 """
             }
         }
+
+        stage('Deploy to Kubernetes (Rolling Update)') {
+            when { branch 'main' }
+            steps {
+                echo 'Rolling update on Kubernetes...'
+                bat """
+                    kubectl apply -f k8s/namespace.yaml -f k8s/rolling.yaml
+                    kubectl -n ${K8S_NS} set image deployment/aceest-rolling app=${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
+                    kubectl -n ${K8S_NS} rollout status deployment/aceest-rolling --timeout=120s
+                """
+            }
+        }
     }
 
     post {
@@ -112,6 +175,12 @@ pipeline {
         }
         failure {
             echo 'I failed :('
+            script {
+                if (env.BRANCH_NAME == 'main') {
+                    echo 'Rolling back Kubernetes deployment to the last stable revision...'
+                    bat "kubectl -n ${K8S_NS} rollout undo deployment/aceest-rolling || exit /b 0"
+                }
+            }
             script {
                 try {
                     if (env.NOTIFICATION_EMAIL) {

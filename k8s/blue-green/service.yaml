@@ -1,8 +1,0 @@
-# Live traffic goes to whichever slot the selector names. Cut over with scripts/deploy.sh (kubectl patch).
-apiVersion: v1
-kind: Service
-metadata: { name: aceest-bluegreen }
-spec:
-  type: NodePort
-  selector: { app: aceest, slot: blue }
-  ports: [{ port: 80, targetPort: 5000, nodePort: 30081 }]

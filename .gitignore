@@ -4,6 +4,3 @@ __pycache__/
 *.pyc
 .vscode
 myenv/
-.idea/
-.scannerwork/
-coverage.xml
