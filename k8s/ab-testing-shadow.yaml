@@ -1,5 +1,5 @@
 # Needs: minikube addons enable ingress   (ingress-nginx)
-# Services for version A (3.1.2) and B (3.2.4)
+
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: aceest-a, namespace: aceest }
@@ -10,7 +10,7 @@ spec:
     metadata: { labels: { app: aceest-ab, variant: a } }
     spec:
       containers:
-      - { name: app, image: "DOCKERHUB_USER/aceest-fitness:V1", ports: [{ containerPort: 5000 }] }
+      - { name: app, image: "devkg1\\\\\\\\\\\\\\\/aceest-fitness:V1", ports: [{ containerPort: 5000 }] }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -22,7 +22,7 @@ spec:
     metadata: { labels: { app: aceest-ab, variant: b } }
     spec:
       containers:
-      - { name: app, image: "DOCKERHUB_USER/aceest-fitness:V3", ports: [{ containerPort: 5000 }] }
+      - { name: app, image: "devkg1\\\\\\\\\\\\\\\/aceest-fitness:V3", ports: [{ containerPort: 5000 }] }
 ---
 apiVersion: v1
 kind: Service

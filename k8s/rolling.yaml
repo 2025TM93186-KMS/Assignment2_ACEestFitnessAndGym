@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: DOCKERHUB_USER/aceest-fitness:V3
+        image: devkg1\\\\\\\\\\\\\\\/aceest-fitness:V3
         ports: [{ containerPort: 5000 }]
         readinessProbe: { tcpSocket: { port: 5000 }, initialDelaySeconds: 5 }
         livenessProbe:  { tcpSocket: { port: 5000 }, initialDelaySeconds: 10 }

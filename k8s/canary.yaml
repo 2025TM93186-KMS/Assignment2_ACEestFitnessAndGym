@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: DOCKERHUB_USER/aceest-fitness:V1
+        image: devkg1\\\\\\\\\\\\\\\/aceest-fitness:V1
         ports: [{ containerPort: 5000 }]
         readinessProbe: { tcpSocket: { port: 5000 }, initialDelaySeconds: 5 }
 ---
@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: DOCKERHUB_USER/aceest-fitness:V3
+        image: devkg1\\\\\\\\\\\\\\\/aceest-fitness:V3
         ports: [{ containerPort: 5000 }]
         readinessProbe: { tcpSocket: { port: 5000 }, initialDelaySeconds: 5 }
 ---
