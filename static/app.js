@@ -1,42 +1,564 @@
-/* ==========================================================================
-   ACEest Fitness & Performance Automation Engine - Frontend Core
-   ========================================================================== */
+// =========================================================================
+// ACEest RUNTIME MACHINE SCRIPT ENGINE
+// =========================================================================
 
-let currentClient = null;
-let chartInstance = null;
-let loadedPrograms = {}; // Renamed from duplicate reference tracking name to prevent compilation crash
-
-const PROGRAMS = {
-    "Fat Loss (FL) – 3 day": {"factor": 22, "desc": "3-day full-body fat loss"},
-    "Fat Loss (FL) – 5 day": {"factor": 24, "desc": "5-day split, higher volume fat loss"},
-    "Muscle Gain (MG) – PPL": {"factor": 35, "desc": "Push/Pull/Legs hypertrophy"},
-    "Beginner (BG)": {"factor": 26, "desc": "3-day simple beginner full-body"}
+const AI_PROGRAM_TEMPLATES = {
+    "Fat Loss": ["Full Body HIIT", "Circuit Training", "Cardio + Weights"],
+    "Muscle Gain": ["Push/Pull/Legs", "Upper/Lower Split", "Full Body Strength"],
+    "Beginner": ["Full Body 3x/week", "Light Strength + Mobility"]
 };
 
-document.addEventListener("DOMContentLoaded", function() {
-    refreshClientList();
-    loadProgramsFromApi();
-});
+let currentActiveClient = "";
+let activeChartInstance = null;
 
-function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content || '';
-}
-
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.getElementById('tab-' + tabId).style.display = 'block';
-
-    const btnSummary = document.getElementById('btn-summary');
-    const btnAnalytics = document.getElementById('btn-analytics');
-
-    if (tabId === 'summary') {
-        btnSummary.style.background = '#222'; btnSummary.style.color = '#d4af37'; btnSummary.style.borderBottom = '3px solid #d4af37';
-        btnAnalytics.style.background = '#111'; btnAnalytics.style.color = '#888'; btnAnalytics.style.borderBottom = '3px solid transparent';
-    } else {
-        btnAnalytics.style.background = '#222'; btnAnalytics.style.color = '#d4af37'; btnAnalytics.style.borderBottom = '3px solid #d4af37';
-        btnSummary.style.background = '#111'; btnSummary.style.color = '#888'; btnSummary.style.borderBottom = '3px solid transparent';
+/**
+ * Bootstraps and seeds the client framework payload layer
+ * to mock relational schema requirements.
+ */
+function bootApplicationStorageDB() {
+    if (!localStorage.getItem('db_clients')) {
+        localStorage.setItem('db_clients', JSON.stringify({
+            "Jane Doe": { id: 1, name: "Jane Doe", age: 28, height: 165.0, weight: 62.5, program: "Full Body HIIT", calories: 1800, target_weight: 58.0, target_adherence: 85, status: "Active", end: "2027-08-14" },
+            "Morgan Smith": { id: 2, name: "Morgan Smith", age: 32, height: 180.5, weight: 85.2, program: "Push/Pull/Legs", calories: 2700, target_weight: 80.0, target_adherence: 90, status: "Active", end: "2027-03-22" }
+        }));
+        localStorage.setItem('db_progress', JSON.stringify({
+            "Jane Doe": [{ week: "Wk 1", val: 80 }, { week: "Wk 2", val: 95 }, { week: "Wk 3", val: 85 }, { week: "Wk 4", val: 90 }],
+            "Morgan Smith": [{ week: "Wk 1", val: 70 }, { week: "Wk 2", val: 85 }, { week: "Wk 3", val: 80 }]
+        }));
+        localStorage.setItem('db_workouts', JSON.stringify({
+            "Jane Doe": [{ date: "2026-10-10", type: "Cardio", duration: 45, notes: "HIIT treadmill system circuits" }],
+            "Morgan Smith": [{ date: "2026-10-09", type: "Strength", duration: 60, notes: "Barbell compound loading sequences" }]
+        }));
     }
+    //rebuildClientDropdownList();
+    refreshClientList();
 }
+
+/**
+ * Executes a role-based login validation and view swap sequence.
+ */
+/**
+ * Executes a role-based login validation and view swap sequence.
+ */
+
+/**
+ * Re-reads profile descriptors from storage to refresh the dropdown menu selectors.
+ */
+function rebuildClientDropdownList() {
+    const select = document.getElementById('client-selector');
+    select.innerHTML = '<option value="">-- No Profile Selected --</option>';
+    const clients = JSON.parse(localStorage.getItem('db_clients') || '{}');
+
+    Object.keys(clients).forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.innerText = key;
+        select.appendChild(opt);
+    });
+    select.value = currentActiveClient;
+}
+
+/**
+ * Active element wrapper caught by select change events.
+ */
+function onClientProfileActivated(val) {
+    currentActiveClient = val;
+    //synchronizeActiveClientRecord();
+    //refreshClientList();
+    loadClient();
+}
+
+/**
+ * Syncs active dashboard text fragments and table data loops.
+ */
+function synchronizeActiveClientRecord() {
+    if (!currentActiveClient) {
+        document.getElementById('summary-diagnostics-console').innerText = "Select an active client profile matrix from the selector console to generate dynamic diagnostic summary records...";
+        document.getElementById('workout-ledger-rows').innerHTML = '<tr><td colspan="4" style="text-align:center;" class="text-neutral-500 italic">Select active profile to render ledger tracking sequences</td></tr>';
+        if (activeChartInstance) activeChartInstance.destroy();
+        return;
+    }
+
+    const clients = JSON.parse(localStorage.getItem('db_clients') || '{}');
+    const data = clients[currentActiveClient];
+    if (!data) return;
+
+    document.getElementById('summary-diagnostics-console').innerText =
+        `Name: ${data.name}\nProgram: ${data.program || 'None Assigned'}\nCalories: ${data.calories || 'N/A'}\nMembership: ${data.status}`;
+
+    renderWorkoutLedgerTable();
+    renderPerformanceChartLoop();
+}
+
+/**
+ * Captures name variables to generate an independent database record.
+ */
+/**
+ * Captures name inputs via dialog to generate an independent database record on the API backend.
+ */
+function triggerAddClient() {
+    const name = prompt("Enter client name:");
+    if (!name || name.trim() === "") return;
+
+    fetch("/api/client", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            name: name
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || "Save execution failure"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        currentActiveClient = name;
+
+        if (typeof refreshClientList === "function") {
+            refreshClientList();
+        }
+        alert(`Client ${name} saved successfully.`);
+    })
+    .catch(error => {
+        console.error("Save Client Endpoint Mismatch Exception:", error);
+        alert(`Failed to execute record insertion: ${error.message}`);
+    });
+}
+
+
+/**
+ * Uses a basic randomization loop to emulate the original script's automated assignment logic.
+ */
+/**
+ * Triggers the backend AI generator to randomly select and assign a template protocol to a profile.
+ */
+function triggerAIGenerator() {
+    if (!currentActiveClient) {
+        return alert("Select a client first");
+    }
+
+    // Capture the template dictionary keys to pick a type category random variable
+    const trackingKeys = Object.keys(AI_PROGRAM_TEMPLATES);
+    if (trackingKeys.length === 0) {
+        return alert("Configuration Error: No operational AI templates initialized.");
+    }
+    const pickedProgramType = trackingKeys[Math.floor(Math.random() * trackingKeys.length)];
+
+    // Dispatch the payload directly to your backend endpoint matrix
+    fetch("/api/ai_program", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            name: currentActiveClient,
+            program_type: pickedProgramType
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || "AI script generator engine failure");
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Unpack response message or fallback to dynamic alert layout parameters
+        const serverFeedbackMessage = data.message || `Program Generated for ${currentActiveClient}`;
+        alert(serverFeedbackMessage);
+
+        // Force systematic interface layout re-renders to load fresh profile state rows
+        if (typeof loadClient === "function") {
+            loadClient();
+        }
+    })
+    .catch(error => {
+        console.error("AI Generation Exception:", error);
+        alert(`Failed to execute engine script: ${error.message}`);
+    });
+}
+
+
+/**
+ * Emulates the original report builder pipeline.
+ */
+function triggerPDFReport() {
+    if (!currentActiveClient) {
+        return alert("Select a client first");
+    }
+
+    // Encode parameter safely to handle spaces and complex special characters
+    const targetUrl = `/api/generate_pdf?name=${encodeURIComponent(currentActiveClient)}`;
+
+    fetch(targetUrl, {
+        method: "GET",
+        headers: {
+            "Accept": "application/json"
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Unpack structured error messages if client profile context is missing
+            return response.json().then(err => { throw new Error(err.error || "Server error"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Precise string feedback alert matching successful output logs
+        alert(`PDF Structural Serialization complete:\n"${currentActiveClient}_report.pdf" created successfully.`);
+    })
+    .catch(error => {
+        console.error("PDF Generation Exception:", error);
+        alert(`Export Failure: ${error.message}`);
+    });
+}
+
+/**
+ * Reads profile timelines to return target subscription values.
+ */
+function triggerMembershipCheck() {
+   /* if (!currentActiveClient) return alert("Select a client first");
+    const clients = JSON.parse(localStorage.getItem('db_clients') || '{}');
+    const data = clients[currentActiveClient];
+    alert(`Membership: ${data.status}\nRenewal Date: ${data.end || 'N/A'}`); */
+    if (!currentActiveClient) {
+        return alert("Select a client first");
+    }
+
+    // Safely encode parameters to protect spaces and special characters inside URLs
+    const targetUrl = `/api/check_membership?name=${encodeURIComponent(currentActiveClient)}`;
+
+    fetch(targetUrl, {
+        method: "GET",
+        headers: {
+            "Accept": "application/json"
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Extract server exception payloads cleanly if records are missing
+            return response.json().then(err => { throw new Error(err.error || "Membership check failed"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Unpack the exact pre-formatted multi-line message block returned by Python
+        if (data && data.message) {
+            alert(data.message);
+        } else {
+            alert(`Membership: Active\nRenewal Date: N/A`);
+        }
+    })
+    .catch(error => {
+        console.error("Membership Check Engine Exception:", error);
+        alert(`Verification Error: ${error.message}`);
+    });
+}
+
+function renderWorkoutLedgerTable() {
+    const tbody = document.getElementById('workout-ledger-rows');
+    if (!tbody) return;
+
+    if (!currentActiveClient) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;" class="text-neutral-500 italic">Select active profile to render ledger tracking sequences</td></tr>';
+        return;
+    }
+
+    // Safely encode parameters to support spaces and special characters inside URLs
+    const targetUrl = `/api/workout?name=${encodeURIComponent(currentActiveClient)}`;
+
+    fetch(targetUrl, {
+        method: "GET",
+        headers: {
+            "Accept": "application/json"
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || "Failed to load history"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        tbody.innerHTML = "";
+
+        // Extract the tuple collection block array returned from Python
+        const historyList = data.workout_history || [];
+
+        if (historyList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;" class="text-neutral-500 italic">No historical data logs recorded.</td></tr>';
+            return;
+        }
+
+        // Iterate over arrays by index position to mirror the SQLite SELECT column sorting rules exactly
+        historyList.forEach(workoutTuple => {
+            const dateVal = workoutTuple[0] || "N/A";
+            const typeVal = workoutTuple[1] || "N/A";
+            const durationVal = workoutTuple[2] !== undefined ? `${workoutTuple[2]} min` : "N/A";
+            const notesVal = workoutTuple[3] || "";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${dateVal}</td>
+                <td>${typeVal}</td>
+                <td style="text-align:center;">${durationVal}</td>
+                <td>${notesVal}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(error => {
+        console.error("Workout Ledger Interface Exception Failure Loop:", error);
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #ef4444;" class="font-semibold">Sync Failure: ${error.message}</td></tr>`;
+    });
+}
+
+
+/**
+ * Initializes form validation defaults inside open input modals.
+ */
+function openLogWorkoutWindow() {
+    if (!currentActiveClient) return alert("Select an active client target frame first.");
+    document.getElementById('modal-workout-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('modal-workout-duration').value = "60";
+    document.getElementById('modal-workout-notes').value = "";
+    document.getElementById('workout-modal').classList.remove('hidden');
+}
+
+/**
+ * Appends a new item payload directly to your workspace tracking histories.
+ */
+function commitWorkoutEntry() {
+    const dateVal = document.getElementById('modal-workout-date').value;
+    let typeVal = document.getElementById('modal-workout-type').value;
+    const durVal = parseFloat(document.getElementById('modal-workout-duration').value) || 60.0;
+    const notesVal = document.getElementById('modal-workout-notes').value || "";
+
+    if (!currentActiveClient) {
+        return alert("Select an active client profile first.");
+    }
+
+    const payload = {
+        name: currentActiveClient,
+        date: dateVal,
+        workout: typeVal, // Keyed explicitly to "workout" as required by data.get("workout")
+        duration: durVal,
+        notes: notesVal
+    };
+
+    // 3. Dispatch payload to backend endpoint matrix
+    fetch("/api/workout", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Unpack custom server exception messages cleanly if parameters fail constraint checks
+            return response.json().then(err => { throw new Error(err.error || "Failed to log entry"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Notify operator using success messages returned straight from the backend
+        alert(data.message || "Workout logged successfully");
+
+        // 4. Hide form modal backdrop view frame
+        if (typeof closeModalWindow === "function") {
+            closeModalWindow('workout-modal');
+        }
+
+        // 5. Instantly refresh the historical ledger layout table view to load new database rows
+        if (typeof renderWorkoutLedgerTable === "function") {
+            renderWorkoutLedgerTable();
+        }
+    })
+    .catch(error => {
+        console.error("Workout Logging Mismatch Exception:", error);
+        alert(`Log Failure: ${error.message}`);
+    });
+}
+
+/**
+ * Replicates the Tkinter Notebook widget tab switches.
+ */
+function switchNotebookTab(targetId) {
+    document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.notebook-pane').forEach(pane => pane.classList.remove('active'));
+
+    document.getElementById(`tab-btn-${targetId}`).classList.add('active');
+    document.getElementById(`notebook-tab-${targetId}`).classList.add('active');
+
+    if (targetId === 'summary') {
+renderPerformanceChartLoop();
+}
+}
+/**
+• Captures historical indices to re-draw linear chart lines over canvas grids.
+*/
+/**
+ * Captures historical indices from the backend API to draw line graph curves over the canvas grid.
+ */
+/**
+ * Captures data arrays from the API backend and renders a clean percentage grid line chart.
+ */
+function renderPerformanceChartLoop() {
+    const canvasElement = document.getElementById('analyticsAdherenceChart');
+    if (!canvasElement) return;
+
+    const ctx = canvasElement.getContext('2d');
+
+    if (!currentActiveClient) {
+        if (activeChartInstance) {
+            activeChartInstance.destroy();
+            activeChartInstance = null;
+        }
+        return;
+    }
+
+    const targetUrl = `/api/plot_charts?name=${encodeURIComponent(currentActiveClient)}`;
+
+    fetch(targetUrl, {
+        method: "GET",
+        headers: { "Accept": "application/json" }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || "Failed to load coordinates"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (activeChartInstance) {
+            activeChartInstance.destroy();
+        }
+
+        if (!data || !data.message) return;
+        const chartPayload = data.message;
+
+        const xLabels = chartPayload.week || [];
+        const yValues = chartPayload.adherence || [];
+
+        // FIX: Configures standard point tracking parameters to reproduce your desktop look
+        activeChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: xLabels,
+                datasets: [{
+                    label: 'Adherence %',
+                    data: yValues,
+                    borderColor: '#1d4ed8',        // Matplotlib style royal blue line metric color
+                    backgroundColor: '#1d4ed8',   // Blue tracking fill point color
+                    borderWidth: 1.5,
+                    pointRadius: 6,               // Enlarges data point tracking visibility to match image
+                    pointHoverRadius: 8,
+                    showLine: true,               // Keeps tracking lines enabled across metrics nodes
+                    fill: false                   // Removes background gradients to match empty grid background
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        title: { display: true, text: '%', color: '#000000', font: { weight: 'bold' } },
+                        grid: { color: '#e5e5e5' }, // Light gray layout grid lines matching your screenshot
+                        ticks: { stepSize: 20, color: '#000000' }
+                    },
+                    x: {
+                        grid: { color: '#e5e5e5' },
+                        ticks: { color: '#000000' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false } // Completely suppresses legend labels to maximize canvas width
+                }
+            }
+        });
+    })
+    .catch(error => {
+        console.error("Chart Engine Processing Exception Loop:", error);
+    });
+}
+
+/**
+• Utility helper to close targeted window models.
+*/
+function closeModalWindow(id) {
+document.getElementById(id).classList.add('hidden');
+}
+// Ensure the page boots strictly directly into the authentication layout context
+/*document.addEventListener("DOMContentLoaded", function() {
+document.getElementById('login-screen').classList.remove('hidden');
+document.getElementById('login-screen').style.display = 'flex';
+document.getElementById('app-container').classList.add('hidden');
+document.getElementById('app-container').style.display = 'none';
+});*/
+
+/**
+ * Executes a role-based login validation against the backend API and controls view swaps.
+ */
+function executeLogin() {
+    const userVal = document.getElementById('auth-username').value.trim();
+    const passVal = document.getElementById('auth-password').value.trim();
+
+    if (!userVal || !passVal) {
+        return alert("Please enter both Username and Password.");
+    }
+
+    fetch("/api/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            username: userVal,
+            password: passVal
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || "Authentication failed"); });
+        }
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        alert(data.message);
+
+        const userRole = data.role || "Admin";
+        document.getElementById('app-title-header').innerText = `ACEest Dashboard (${userRole})`;
+
+        if (typeof refreshClientList === "function") {
+            refreshClientList();
+        }
+    })
+    .catch(error => {
+        console.error("Authentication Exception Error Loop:", error);
+        alert(error.message);
+    });
+}
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-container').classList.add('hidden');
+    refreshClientList();
+});
 
 function refreshClientList() {
     fetch('/api/clients/names', { method: 'GET' })
@@ -48,9 +570,11 @@ function refreshClientList() {
         const combobox = document.getElementById("client-selector");
         combobox.innerHTML = '<option value="" selected>-- Select Existing Client --</option>';
 
+        // Handles safe fallback tracking array iteration loops cleanly
         const clients = data.clients || data.names || data;
 
         clients.forEach(client => {
+            // Unpack element array row structures sent directly from SQLite data sets
             const nameValue = (typeof client === 'object' && client !== null) ? (client.name || client[0]) : client;
             if (nameValue) {
                 const option = document.createElement("option");
@@ -64,370 +588,54 @@ function refreshClientList() {
     .catch(err => console.error("API error loading fitness modules:", err));
 }
 
-function loadProgramsFromApi() {
-    fetch('/api/programs', { method: 'GET' })
-    .then(res => {
-        if (!res.ok) throw new Error("Backend program definitions sync failure");
-        return res.json();
-    })
-    .then(data => {
-        const combobox = document.getElementById("my-combobox");
-        combobox.innerHTML = '<option value="" disabled selected>-- Select a program --</option>';
-
-        const programList = data.programs || data;
-
-        programList.forEach(program => {
-            const option = document.createElement("option");
-            option.value = program;
-            option.textContent = program;
-            combobox.appendChild(option);
-        });
-    })
-    .catch(err => console.error("API error loading fitness modules:", err));
-}
-
-function onClientSelected(name) {
-    if (!name) return;
-    document.getElementById("client-name").value = name;
-    loadClient();
-}
-
-function saveClient() {
-    const name = document.getElementById("client-name").value.trim();
-    const program = document.getElementById("my-combobox").value;
-    const ageInput = document.getElementById("client-age").value;
-    const heightInput = document.getElementById("client-height").value;
-    const weightInput = document.getElementById("client-weight").value;
-    const targetWeight = document.getElementById("target-weight").value;
-    const targetAdherence = document.getElementById("target-adherence").value;
-    const membershipInput = document.getElementById("membership-expiry") ? document.getElementById("membership-expiry").value : "";
-
-    if (!name || !program) {
-        alert("Please fill client name and program selection targets.");
-        return;
-    }
-
-    try {
-        const payload = {
-            name: name,
-            age: Number.parseInt(ageInput, 10) || 0,
-            height: Number.parseFloat(heightInput) || 0.0,
-            weight: Number.parseFloat(weightInput) || 0.0,
-            program: program,
-            target_weight: Number.parseFloat(targetWeight) || 0.0,
-            target_adherence: Number.parseInt(targetAdherence, 10) || 0,
-            membership_expiry: membershipInput
-        };
-
-        fetch('/api/client', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.error || "Server validation rejected parameters"); });
-            }
-            return response.json();
-        })
-        .then(data => {
-            alert(data.message || "Client saved successfully!");
-            currentClient = name;
-            refreshClientList();
-            refreshSummary();
-        })
-        .catch(error => alert(`Error: ${error.message}`));
-
-    } catch (e) {
-        alert("Application Execution Intercept Error: " + (e.message || e));
-    }
-}
-
+/**
+ * Loads an active client profile's parameters and logs it to the console terminal view.
+ */
 function loadClient() {
-    const name = document.getElementById("client-name").value.trim();
-    if (!name) { alert("Enter or select client name first."); return; }
+    const name = currentActiveClient;
 
-    fetch('/api/client?name=' + encodeURIComponent(name))
-    .then(res => {
-        if (!res.ok) throw new Error("Client tracking structure not found.");
-        return res.json();
-    })
-    .then(data => {
-        const profile = data["CLIENT PROFILE"] || data;
-        currentClient = profile.name;
-
-        document.getElementById("client-name").value = profile.name || "";
-        document.getElementById("client-age").value = profile.age || 0;
-        document.getElementById("client-height").value = Number.parseFloat(profile.height) || 0.0;
-        document.getElementById("client-weight").value = Number.parseFloat(profile.weight) || 0.0;
-        document.getElementById("my-combobox").value = profile.program || "";
-        document.getElementById("target-weight").value = profile.target_weight || 0.0;
-        document.getElementById("target-adherence").value = profile.target_adherence || 0;
-        document.getElementById("client-selector").value = profile.name;
-        if (document.getElementById("membership-expiry")) {
-            document.getElementById("membership-expiry").value = profile.membership_expiry || "";
-        }
-
-        let formattedText = `CLIENT PROFILE\n--------------\n`;
-        formattedText += `Name     : ${profile.name}\n`;
-        formattedText += `Age      : ${profile.age || '-'}\n`;
-        formattedText += `Height   : ${profile.height || '-'}\n`;
-        formattedText += `Weight   : ${profile.weight || '-'}\n`;
-        formattedText += `Program  : ${profile.program}\n`;
-        formattedText += `Calories : ${profile.calories || '0'} kcal/day\n`;
-        formattedText += `Expiry   : ${profile.membership_expiry || 'No Horizon Set'}\n\n`;
-
-        const factorMeta = PROGRAMS[profile.program];
-        if (factorMeta) {
-            formattedText += `PROGRAM DETAILS\n---------------\nStrategy : ${factorMeta.desc}\nFactor   : ${factorMeta.factor}x\n\n`;
-        }
-
-        document.getElementById("work-label").innerText = formattedText;
-        loadWorkoutHistory();
-        renderAdherenceChart();
-    })
-    .catch(err => alert(err.message));
-}
-
-function refreshSummary() {
-    if (currentClient) loadClient();
-}
-
-function saveProgress() {
-    if (!currentClient) { alert("Load a valid client first."); return; }
-    const adherence = Number.parseInt(document.getElementById("adherence-slider").value, 10) || 0;
-
-    fetch('/api/progress', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ name: currentClient, adherence: adherence })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to save weekly progress.");
-        return res.json();
-    })
-    .then(() => {
-        alert("Weekly progress logged successfully!");
-        refreshSummary();
-    })
-    .catch(err => alert(`Error: ${err.message}`));
-}
-
-function loadWorkoutHistory() {
-    if (!currentClient) return;
-    fetch('/api/workout?name=' + encodeURIComponent(currentClient))
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to load workout history.");
-        return res.json();
-    })
-    .then(data => {
-        const tbody = document.querySelector("#workout-history-table tbody");
-        tbody.innerHTML = "";
-        const history = data["workout_history"] || data;
-        if (!history || history.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="padding: 8px; text-align: center;">No history logs loaded</td></tr>';
-            return;
-        }
-                history.forEach(w => {
-            let row = `<tr>
-                <td style="padding:8px; border-bottom:1px solid #333;">${w[0] || w.date}</td>
-                <td style="padding:8px; border-bottom:1px solid #333;">${w[1] || w.workout_type}</td>
-                <td style="padding:8px; border-bottom:1px solid #333; text-align:center;">${w[2] || w.duration_min}</td>
-                <td style="padding:8px; border-bottom:1px solid #333;">${w[3] || w.notes || ''}</td>
-            </tr>`;
-            tbody.innerHTML += row;
-        });
-    })
-    .catch(err => console.error("Workout history error:", err));
-}
-
-function openLogWorkoutModal() {
-    if (!currentClient) { alert("Select a client first."); return; }
-    document.getElementById("workout-modal").style.display = "flex";
-}
-
-function submitWorkout() {
-    const payload = {
-        name: currentClient,
-        workout: document.getElementById("modal-w-type").value,
-        duration: Number.parseInt(document.getElementById("modal-w-dur").value, 10) || 60,
-        notes: document.getElementById("modal-w-notes").value,
-        ex_name: document.getElementById("modal-w-ex-name").value,
-        ex_sets: Number.parseInt(document.getElementById("modal-w-sets").value, 10) || 0,
-        ex_reps: Number.parseInt(document.getElementById("modal-w-reps").value, 10) || 0,
-        ex_weight: Number.parseFloat(document.getElementById("modal-w-weight").value) || 0.0
-    };
-
-    fetch('/api/workout', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to save workout.");
-        alert("Workout successfully saved.");
-        document.getElementById("workout-modal").style.display = "none";
-        loadWorkoutHistory();
-    })
-    .catch(err => alert(`Error: ${err.message}`));
-}
-
-function openLogMetricsModal() {
-    if (!currentClient) { alert("Select a client first."); return; }
-    document.getElementById("modal-m-weight").value = Number.parseFloat(document.getElementById("client-weight").value) || 0.0;
-    document.getElementById("metrics-modal").style.display = "flex";
-}
-
-function submitMetrics() {
-    const payload = {
-        name: currentClient,
-        date: new Date().toISOString().split('T')[0],
-        weight: Number.parseFloat(document.getElementById("modal-m-weight").value) || 0,
-        waist: Number.parseFloat(document.getElementById("modal-m-waist").value) || 0,
-        body_fat: Number.parseFloat(document.getElementById("modal-m-bf").value) || 0
-    };
-
-    fetch('/api/metrics', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to save metrics.");
-        alert("Metrics logged safely.");
-        document.getElementById("metrics-modal").style.display = "none";
-        refreshSummary();
-    })
-    .catch(err => alert(`Error: ${err.message}`));
-}
-
-function initChartContext(title, type, labels, data, labelName, color) {
-    if (chartInstance) chartInstance.destroy();
-    document.getElementById("chart-title").innerText = title;
-    const ctx = document.getElementById('analyticsChart').getContext('2d');
-    chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: labelName,
-                data: data,
-                borderColor: color || '#1d4ed8',
-                backgroundColor: 'rgba(29, 78, 216, 0.1)',
-                borderWidth: 2,
-                pointBackgroundColor: color || '#1d4ed8',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 1.5,
-                pointRadius: 5,
-                tension: 0,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    ticks: { color: '#000000' },
-                    grid: { color: '#cccccc' }
-                },
-                x: {
-                    ticks: { color: '#000000' },
-                    grid: { color: '#cccccc' }
-                }
-            }
-        }
-    });
-}
-
-function renderAdherenceChart() {
-    if (!currentClient) return;
-    fetch('/api/progress?name=' + encodeURIComponent(currentClient))
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch progress data.");
-        return res.json();
-    })
-    .then(data => {
-        const history = data.progress || [];
-        const weeks = history.map(h => h.week);
-        const adherence = history.map(h => h.adherence);
-        initChartContext("Weekly Adherence – " + currentClient, 'line', weeks, adherence, 'Adherence (%)', '#d4af37');
-    })
-    .catch(err => console.error("Adherence chart error:", err));
-}
-
-function renderWeightChart() {
-    if (!currentClient) return;
-    fetch('/api/weight?name=' + encodeURIComponent(currentClient))
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch weight chart data.");
-        return res.json();
-    })
-    .then(data => {
-        const history = data.weight_chart || [];
-        const dates = history.map(h => h[0] || h.date);
-        const weights = history.map(h => h[1] || h.weight);
-        initChartContext("Weight Trend – " + currentClient, 'line', dates, weights, 'Weight (kg)', '#ff9800');
-    })
-    .catch(err => console.error("Weight chart error:", err));
-}
-
-function showBMIInfo() {
-    if (!currentClient) return;
-    fetch('/api/bmi?name=' + encodeURIComponent(currentClient))
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch BMI info.");
-        return res.json();
-    })
-    .then(data => {
-        alert(data["BMI Info"] || data.error);
-    })
-    .catch(err => alert(`Error: ${err.message}`));
-}
-
-// LOGIN
-// Synchronous Authorization Profile Session Verifier
-function handleLogin() {
-    const userField = document.getElementById("username").value.trim();
-    const passField = document.getElementById("password").value.trim();
-
-    if (!userField || !passField) {
-        alert("Authentication Error: Configuration credentials cannot be left blank.");
+    if (!currentActiveClient) {
+        document.getElementById('summary-diagnostics-console').innerText = "Select an active client profile matrix from the selector console to generate dynamic diagnostic summary records...";
+        document.getElementById('workout-ledger-rows').innerHTML = '<tr><td colspan="4" style="text-align:center;" class="text-neutral-500 italic">Select active profile to render ledger tracking sequences</td></tr>';
+        if (activeChartInstance) activeChartInstance.destroy();
         return;
     }
 
-    fetch('/api/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
-        body: JSON.stringify({ username: userField, password: passField })
-    })
+    if (!name) {
+        alert("Enter or select client name first.");
+        return;
+    }
+
+    fetch('/api/refresh_summary?name=' + encodeURIComponent(name))
     .then(res => {
-        if (!res.ok) throw new Error("Invalid Administrative credentials configured.");
+        if (!res.ok) {
+            return res.json().then(err => { throw new Error(err.error || "Client tracking structure not found."); });
+        }
         return res.json();
     })
-    .then(() => {
-        document.getElementById("login-modal").style.display = "none";
-        document.getElementById("application-status-log").innerText = `[Authenticated]: Active Admin Role Loaded`;
+    .then(data => {
+        // FIXED: Extract the lower-case payload nested inside your API's "message" key
+        if (!data || !data.message) return;
+        const profile = data.message;
 
-        refreshClientList();
-        loadProgramsFromApi();
+        // Render data using the exact case matching your backend dict keys (profile.name, profile.program, etc.)
+        document.getElementById('summary-diagnostics-console').innerText =
+            `Name: ${profile.name || 'N/A'}\n` +
+            `Program: ${profile.program || 'None Assigned'}\n` +
+            `Calories: ${profile.calories || 'N/A'}\n` +
+            `Membership: ${profile.membership || 'Active'}`;
+
+        // Cascade execution signals to update associated tabs and analytics
+        if (typeof renderWorkoutLedgerTable === "function") {
+            renderWorkoutLedgerTable();
+        }
+        if (typeof renderPerformanceChartLoop === "function") {
+            renderPerformanceChartLoop();
+        }
     })
     .catch(err => {
-        alert("Access Denied: " + err.message);
+        console.error("Load Client System Exception:", err);
+        alert(err.message);
     });
 }
+

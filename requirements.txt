@@ -3,4 +3,4 @@ pytest
 flask_cors
 matplotlib
 fpdf2
-Flask-WTF
+
