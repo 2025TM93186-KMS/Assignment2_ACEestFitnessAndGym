@@ -6,3 +6,5 @@ __pycache__/
 myenv/
 .idea/
 .scannerwork/
+.coverage
+coverage.xml
