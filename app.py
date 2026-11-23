@@ -13,7 +13,8 @@ import matplotlib
 matplotlib.use('Agg') # Prevents desktop GUI windows from opening
 import matplotlib.pyplot as plt
 
-import random
+import secrets
+
 from fpdf import FPDF, XPos, YPos
 
 import os
@@ -30,7 +31,18 @@ csrf = CSRFProtect(app)
 allowed_origins = os.getenv(
     "ALLOWED_ORIGINS", "http://127.0.0.1:5000,http://localhost:5000"
 ).split(",")
-CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                "http://127.0.0.1:5000",
+                "http://localhost:5000",
+            ]
+        }
+    },
+)
+
 
 
 CLIENTS_DB = []
@@ -762,12 +774,14 @@ def generate_ai_program():
             weekly_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][:days]
             program_tree = []
 
+            rng = secrets.SystemRandom()
             for day in weekly_days:
-                exercises = random.sample(exercises_pool[focus], k=3 if days < 4 else 4)
+                exercises = rng.sample(exercises_pool[focus], k=3 if days < 4 else 4)
                 for ex in exercises:
-                    sets = random.randint(*sets_range)
-                    reps = random.randint(*reps_range)
+                    sets = rng.randint(*sets_range)
+                    reps = rng.randint(*reps_range)
                     program_tree.append({"day": day, "exercise": ex, "sets": sets, "reps": reps})
+
 
             return jsonify({
                 "message": f"AI program generated for {name}",
