@@ -1,4 +1,4 @@
 Flask
 pytest
 flask_cors
-
+Flask-WTF

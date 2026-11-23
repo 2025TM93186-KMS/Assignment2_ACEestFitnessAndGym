@@ -5,6 +5,13 @@ import sys
 import io
 import csv
 
+import os
+
+from flask_wtf.csrf import CSRFProtect
+
+
+
+
 app = Flask(__name__)
 CORS(app)  # Eliminates Cross-Origin blocking parameters for client integrations
 CLIENTS_DB = []
@@ -343,5 +350,12 @@ if __name__ == "__main__":
             # FIX: Safely extracts the value after the '=' sign
             port_number = int(arg.split('=')[1])
 
-    print(f"Launching ACEest Fitness Engine on port {port_number}")
-    app.run(host='0.0.0.0', port=port_number, debug=False)
+    # 3. Defaults to 127.0.0.1 for SonarQube, overridable via FLASK_HOST=0.0.0.0 for Docker
+    host_address = os.getenv("FLASK_HOST", "127.0.0.1")
+    print(f"Launching ACEest Fitness Engine on {host_address}:{port_number}")
+    app.run(host=host_address, port=port_number, debug=False)
+
+
+
+
+

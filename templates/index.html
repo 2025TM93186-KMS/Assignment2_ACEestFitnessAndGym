@@ -222,7 +222,7 @@
             const program = document.getElementById("my-combobox").value;
             const ageInput = document.getElementById("client-age").value;
             const weightInput = document.getElementById("client-weight").value;
-            const adherence = parseInt(document.getElementById("adherence-slider").value) || 0;
+            const adherence = Number.parseInt(document.getElementById("adherence-slider").value) || 0;
             const notes = document.getElementById("client-notes").value.trim();
 
             if (!name || !program) {
@@ -232,8 +232,8 @@
 
             let age, weight;
             try {
-                age = parseInt(ageInput);
-                weight = parseFloat(weightInput);
+                age = Number.parseInt(ageInput);
+                weight = Number.parseFloat(weightInput);
                 if (isNaN(age) || isNaN(weight)) {
                     throw new Error();
                 }
