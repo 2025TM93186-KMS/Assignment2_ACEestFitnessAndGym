@@ -1,6 +1,6 @@
 let currentClient = null;
 let chartInstance = null;
-let loadedPrograms = {}; // Renamed from duplicate reference tracking name to prevent compilation crash
+let loadedPrograms = {};
 
 const PROGRAMS = {
     "Fat Loss (FL) – 3 day": {"factor": 22, "desc": "3-day full-body fat loss"},
@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", function() {
     refreshClientList();
     loadProgramsFromApi();
 });
+
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
@@ -40,11 +44,9 @@ function refreshClientList() {
         const combobox = document.getElementById("client-selector");
         combobox.innerHTML = '<option value="" selected>-- Select Existing Client --</option>';
 
-        // Handles safe fallback tracking array iteration loops cleanly
         const clients = data.clients || data.names || data;
 
         clients.forEach(client => {
-            // Unpack element array row structures sent directly from SQLite data sets
             const nameValue = (typeof client === 'object' && client !== null) ? (client.name || client[0]) : client;
             if (nameValue) {
                 const option = document.createElement("option");
@@ -103,20 +105,20 @@ function saveClient() {
     try {
         const payload = {
             name: name,
-            age: Number.parseInt(ageInput) || 0,
+            age: Number.parseInt(ageInput, 10) || 0,
             height: Number.parseFloat(heightInput) || 0.0,
             weight: Number.parseFloat(weightInput) || 0.0,
             program: program,
             target_weight: Number.parseFloat(targetWeight) || 0.0,
-            target_adherence: Number.parseInt(targetAdherence) || 0
+            target_adherence: Number.parseInt(targetAdherence, 10) || 0
         };
 
         fetch('/api/client', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                 },
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify(payload)
         })
         .then(response => {
@@ -160,7 +162,6 @@ function loadClient() {
         document.getElementById("target-adherence").value = profile.target_adherence || 0;
         document.getElementById("client-selector").value = profile.name;
 
-        // Process custom response format blocks cleanly to downstream output renders
         let formattedText = `CLIENT PROFILE\n--------------\n`;
         formattedText += `Name     : ${profile.name}\n`;
         formattedText += `Age      : ${profile.age || '-'}\n`;
@@ -186,27 +187,34 @@ function refreshSummary() {
 
 function saveProgress() {
     if (!currentClient) { alert("Load a valid client first."); return; }
-    const adherence = Number.parseInt(document.getElementById("adherence-slider").value);
+    const adherence = Number.parseInt(document.getElementById("adherence-slider").value, 10) || 0;
 
     fetch('/api/progress', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            },
+            'X-CSRFToken': getCsrfToken()
+        },
         body: JSON.stringify({ name: currentClient, adherence: adherence })
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to save progress");
+        return res.json();
+    })
+    .then(() => {
         alert("Weekly progress logged successfully!");
         refreshSummary();
-    });
+    })
+    .catch(err => alert(`Error: ${err.message}`));
 }
 
 function loadWorkoutHistory() {
     if (!currentClient) return;
     fetch('/api/workout?name=' + encodeURIComponent(currentClient))
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to load workout history");
+        return res.json();
+    })
     .then(data => {
         const tbody = document.querySelector("#workout-history-table tbody");
         tbody.innerHTML = "";
@@ -224,7 +232,8 @@ function loadWorkoutHistory() {
             </tr>`;
             tbody.innerHTML += row;
         });
-    });
+    })
+    .catch(err => console.error("Workout history error:", err));
 }
 
 function openLogWorkoutModal() {
@@ -236,53 +245,64 @@ function submitWorkout() {
     const payload = {
         name: currentClient,
         workout: document.getElementById("modal-w-type").value,
-        duration: Number.parseInt(document.getElementById("modal-w-dur").value) || 60,
+        duration: Number.parseInt(document.getElementById("modal-w-dur").value, 10) || 60,
         notes: document.getElementById("modal-w-notes").value,
         ex_name: document.getElementById("modal-w-ex-name").value,
-        ex_sets: Number.parseInt(document.getElementById("modal-w-sets").value) || 0,
-        ex_reps: Number.parseInt(document.getElementById("modal-w-reps").value) || 0,
+        ex_sets: Number.parseInt(document.getElementById("modal-w-sets").value, 10) || 0,
+        ex_reps: Number.parseInt(document.getElementById("modal-w-reps").value, 10) || 0,
         ex_weight: Number.parseFloat(document.getElementById("modal-w-weight").value) || 0.0
-        };
-        fetch('/api/workout', {
+    };
+
+    fetch('/api/workout', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-             },
+        },
         body: JSON.stringify(payload)
-        }).then(() => {
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to save workout.");
         alert("Workout successfully saved.");
         document.getElementById("workout-modal").style.display = "none";
         loadWorkoutHistory();
-        });
-        }
-        function openLogMetricsModal() {
-        if (!currentClient) { alert("Select a client first."); return; }
-        document.getElementById("modal-m-weight").value = Number.parseFloat(document.getElementById("client-weight").value) || 0.0;
-        document.getElementById("metrics-modal").style.display = "flex";
-        }
-        function submitMetrics() {
-        const payload = {
+    })
+    .catch(err => alert(`Error: ${err.message}`));
+}
+
+function openLogMetricsModal() {
+    if (!currentClient) { alert("Select a client first."); return; }
+    document.getElementById("modal-m-weight").value = Number.parseFloat(document.getElementById("client-weight").value) || 0.0;
+    document.getElementById("metrics-modal").style.display = "flex";
+}
+
+function submitMetrics() {
+    const payload = {
         name: currentClient,
         date: new Date().toISOString().split('T')[0],
         weight: Number.parseFloat(document.getElementById("modal-m-weight").value) || 0,
         waist: Number.parseFloat(document.getElementById("modal-m-waist").value) || 0,
         body_fat: Number.parseFloat(document.getElementById("modal-m-bf").value) || 0
-        };
-        fetch('/api/metrics', {
+    };
+
+    fetch('/api/metrics', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            },
+        },
         body: JSON.stringify(payload)
-        }).then(() => {
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to save metrics.");
         alert("Metrics logged safely.");
         document.getElementById("metrics-modal").style.display = "none";
         refreshSummary();
-        });
-        }
-        function initChartContext(title, type, labels, data, labelName, color) {
+    })
+    .catch(err => alert(`Error: ${err.message}`));
+}
+
+function initChartContext(title, type, labels, data, labelName, color) {
     if (chartInstance) chartInstance.destroy();
     document.getElementById("chart-title").innerText = title;
 
@@ -294,7 +314,7 @@ function submitWorkout() {
             datasets: [{
                 label: labelName,
                 data: data,
-                borderColor: '#1d4ed8', // Sharp blue data trajectory matching image plot lines
+                borderColor: '#1d4ed8',
                 backgroundColor: '#1d4ed8',
                 borderWidth: 2,
                 pointBackgroundColor: '#1d4ed8',
@@ -314,16 +334,16 @@ function submitWorkout() {
                     max: 100,
                     ticks: {
                         stepSize: 20,
-                        color: '#000000', // Clear black values text over white background
+                        color: '#000000',
                         font: { size: 12, family: 'sans-serif' }
                     },
                     grid: {
-                        color: '#cccccc', // Structured chart matrix dividers
+                        color: '#cccccc',
                         drawBorder: true
                     },
                     title: {
                         display: true,
-                        text: labelName, // Automatically binds tracking context metrics title
+                        text: labelName,
                         color: '#000000',
                         font: { size: 13, weight: 'bold' }
                     }
@@ -332,7 +352,7 @@ function submitWorkout() {
                     ticks: {
                         maxRotation: 45,
                         minRotation: 45,
-                        color: '#000000', // High contrast timeline labels
+                        color: '#000000',
                         font: { size: 12, family: 'sans-serif' }
                     },
                     grid: {
@@ -356,33 +376,48 @@ function submitWorkout() {
     });
 }
 
-        function renderAdherenceChart() {
-        if (!currentClient) return;
-        fetch('/api/progress?name=' + encodeURIComponent(currentClient))
-        .then(res => res.json())
-        .then(data => {
+function renderAdherenceChart() {
+    if (!currentClient) return;
+    fetch('/api/progress?name=' + encodeURIComponent(currentClient))
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to load adherence data.");
+        return res.json();
+    })
+    .then(data => {
         const history = data.progress || [];
         const weeks = history.map(h => h.week);
         const adherence = history.map(h => h.adherence);
         initChartContext("Weekly Adherence – " + currentClient, 'line', weeks, adherence, 'Adherence (%)', '#d4af37');
-        });
-        }
-        function renderWeightChart() {
-        if (!currentClient) return;
-        fetch('/api/weight?name=' + encodeURIComponent(currentClient))
-        .then(res => res.json())
-        .then(data => {
+    })
+    .catch(err => console.error("Adherence chart error:", err));
+}
+
+function renderWeightChart() {
+    if (!currentClient) return;
+    fetch('/api/weight?name=' + encodeURIComponent(currentClient))
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to load weight data.");
+        return res.json();
+    })
+    .then(data => {
         const history = data.weight_chart || [];
         const dates = history.map(h => h[0] || h.date);
         const weights = history.map(h => h[1] || h.weight);
         initChartContext("Weight Trend – " + currentClient, 'line', dates, weights, 'Weight (kg)', '#ff9800');
-        });
-        }
-        function showBMIInfo() {
-        if (!currentClient) return;
-        fetch('/api/bmi?name=' + encodeURIComponent(currentClient))
-        .then(res => res.json())
-        .then(data => {
+    })
+    .catch(err => console.error("Weight chart error:", err));
+}
+
+function showBMIInfo() {
+    if (!currentClient) return;
+    fetch('/api/bmi?name=' + encodeURIComponent(currentClient))
+    .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch BMI info.");
+        return res.json();
+    })
+    .then(data => {
         alert(data["BMI Info"] || data.error);
-        });
-        }
+    })
+    .catch(err => alert(`Error: ${err.message}`));
+}
+
