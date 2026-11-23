@@ -34,51 +34,51 @@
             <span class="group-box-title">Client Management</span>
 
             <div class="input-group pt-2">
-                <label>Select Active Profile</label>
+                <label for="client-selector">Select Active Profile</label>
                 <select id="client-selector" onchange="onClientSelected(this.value)" class="combobox"></select>
             </div>
 
             <hr class="border-neutral-800 my-2">
 
             <div class="input-group">
-                <label>Client Name</label>
+                <label for="client-name">Client Name</label>
                 <input type="text" id="client-name" placeholder="e.g. John Doe">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="input-group">
-                    <label>Age (yrs)</label>
+                    <label for="client-age">Age (yrs)</label>
                     <input type="number" id="client-age" value="0">
                 </div>
                 <div class="input-group">
-                    <label>Height (cm)</label>
+                    <label for="client-height">Height (cm)</label>
                     <input type="number" step="0.1" id="client-height" value="0.0">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="input-group">
-                    <label>Weight (kg)</label>
+                    <label for="client-weight">Weight (kg)</label>
                     <input type="number" step="0.1" id="client-weight" value="0.0">
                 </div>
                 <div class="input-group">
-                    <label>Target Weight (kg)</label>
+                    <label for="target-weight">Target Weight (kg)</label>
                     <input type="number" step="0.1" id="target-weight" value="0.0">
                 </div>
             </div>
 
             <div class="input-group">
-                <label>Assigned Program</label>
+                <label for="my-combobox">Assigned Program</label>
                 <select id="my-combobox" class="combobox"></select>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="input-group">
-                    <label>Target Adherence %</label>
+                    <label for="target-adherence">Target Adherence %</label>
                     <input type="number" id="target-adherence" value="0">
                 </div>
                 <div class="input-group">
-                    <label>Membership Expiry</label>
+                    <label for="membership-expiry">Membership Expiry</label>
                     <input type="date" id="membership-expiry">
                 </div>
             </div>
@@ -89,7 +89,7 @@
             </div>
 
             <div class="pt-2 border-t border-neutral-800 input-group">
-                <label id="adherence-label">Weekly Adherence: 50%</label>
+                <label for="adherence-slider">Weekly Adherence: <span id="adherence-val">50</span>%</label>
                 <input type="range" id="adherence-slider" min="0" max="100" value="50" oninput="document.getElementById('adherence-label').innerText = 'Weekly Adherence: ' + this.value + '%'">
                 <button onclick="saveProgress()" class="w-full mt-3 bg-emerald-700 text-white font-bold p-2.5 rounded text-xs uppercase tracking-wider hover:bg-emerald-800 transition">Save Weekly Progress</button>
             </div>
@@ -160,7 +160,7 @@
             <h3 class="text-sm font-bold uppercase tracking-wider gold-accent border-b border-neutral-800 pb-2">Log Training Session Parameters</h3>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Workout Focus Type</label>
+                <label for="modal-w-type" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Workout Focus Type</label>
                 <select id="modal-w-type" class="w-full p-2 rounded text-sm">
                     <option value="Strength">Strength Focus</option>
                     <option value="Hypertrophy">Hypertrophy Block</option>
@@ -171,34 +171,34 @@
             </div>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Duration (min)</label>
+                <label for="modal-w-dur" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Duration (min)</label>
                 <input type="number" id="modal-w-dur" value="60" class="w-full p-2 rounded text-sm">
             </div>
 
             <div class="p-3 bg-neutral-900 rounded border border-neutral-800 space-y-3">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Exercise Metrics</p>
                 <div>
-                    <label class="block text-[11px] text-gray-400 mb-0.5">Exercise Focus Name</label>
+                    <label for="modal-w-ex-name" class="block text-[11px] text-gray-400 mb-0.5">Exercise Focus Name</label>
                     <input type="text" id="modal-w-ex-name" placeholder="e.g. Bench Press" class="w-full p-1.5 rounded text-xs">
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="block text-[11px] text-gray-400 mb-0.5">Sets</label>
+                        <label for="modal-w-sets" class="block text-[11px] text-gray-400 mb-0.5">Sets</label>
                         <input type="number" id="modal-w-sets" value="3" class="w-full p-1.5 rounded text-xs">
                     </div>
                     <div>
-                        <label class="block text-[11px] text-gray-400 mb-0.5">Reps</label>
+                        <label for="modal-w-reps" class="block text-[11px] text-gray-400 mb-0.5">Reps</label>
                         <input type="number" id="modal-w-reps" value="10" class="w-full p-1.5 rounded text-xs">
                     </div>
                     <div>
-                        <label class="block text-[11px] text-gray-400 mb-0.5">Load (kg)</label>
+                        <label for="modal-w-weight" class="block text-[11px] text-gray-400 mb-0.5">Load (kg)</label>
                         <input type="number" step="0.1" id="modal-w-weight" value="0.0" class="w-full p-1.5 rounded text-xs">
                     </div>
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Session Target Notes</label>
+                <label for="modal-w-notes" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Session Target Notes</label>
                 <textarea id="modal-w-notes" rows="2" placeholder="Enter notes..." class="w-full p-2 rounded text-sm bg-neutral-700"></textarea>
             </div>
 
@@ -215,17 +215,17 @@
             <h3 class="text-sm font-bold uppercase tracking-wider gold-accent border-b border-neutral-800 pb-2">Log Current Physical Biometrics</h3>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Scale Weight (kg)</label>
+                <label for="modal-m-weight" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Scale Weight (kg)</label>
                 <input type="number" step="0.1" id="modal-m-weight" value="0.0" class="w-full p-2 rounded text-sm">
             </div>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Waist Circumference (cm)</label>
+                <label for="modal-m-waist" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Waist Circumference (cm)</label>
                 <input type="number" step="0.1" id="modal-m-waist" value="0.0" class="w-full p-2 rounded text-sm">
             </div>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Bodyfat Percentage (%)</label>
+                <label for="modal-m-bf" class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Bodyfat Percentage (%)</label>
                 <input type="number" step="0.1" id="modal-m-bf" value="0.0" class="w-full p-2 rounded text-sm">
             </div>
 
@@ -243,12 +243,12 @@
             <h2 class="text-xl font-bold text-center mb-6 gold-accent tracking-wide uppercase">ACEest Console Login</h2>
 
             <div class="input-group mb-4">
-                <label class="block text-xs uppercase tracking-wider mb-2 text-gray-400">Username</label>
+                <label for="username" class="block text-xs uppercase tracking-wider mb-2 text-gray-400">Username</label>
                 <input type="text" id="username" placeholder="Enter username..." value="admin" class="w-full">
             </div>
 
             <div class="input-group mb-6">
-                <label class="block text-xs uppercase tracking-wider mb-2 text-gray-400">Password</label>
+                <label for="password" class="block text-xs uppercase tracking-wider mb-2 text-gray-400">Password</label>
                 <input type="password" id="password" placeholder="Enter password..." value="admin" class="w-full">
             </div>
 
