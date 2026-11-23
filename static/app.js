@@ -148,7 +148,10 @@ function triggerAIGenerator() {
     if (trackingKeys.length === 0) {
         return alert("Configuration Error: No operational AI templates initialized.");
     }
-    const pickedProgramType = trackingKeys[Math.floor(Math.random() * trackingKeys.length)];
+    const randomBytes = new Uint32Array(1);
+    window.crypto.getRandomValues(randomBytes);
+    const pickedProgramType = trackingKeys[randomBytes[0] % trackingKeys.length];
+
 
     // Dispatch the payload directly to your backend endpoint matrix
     fetch("/api/ai_program", {

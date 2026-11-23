@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg') # Prevents desktop GUI windows from opening
 import matplotlib.pyplot as plt
 
-import random
+import secrets
 from fpdf import FPDF, XPos, YPos
 
 import os
@@ -749,7 +749,7 @@ def generate_ai_program():
             return jsonify({"error": "Name and program_type fields are required"}), 400
         if program_type not in program_templates:
             return jsonify({"error": f"Program type {program_type} not found"}), 404
-        program_detail = random.choice(program_templates[program_type])
+        program_detail = secrets.choice(program_templates[program_type])
         init_db()
         with get_db() as conn:
             cur = conn.cursor()

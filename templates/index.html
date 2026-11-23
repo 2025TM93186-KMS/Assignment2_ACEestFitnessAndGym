@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>ACEest Fitness & Performance</title>
-    <!-- FIX: Updated to official Tailwind CSS Play CDN compile script -->
+    <!-- Tailwind CSS Play CDN compile script -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for data visualization rendering -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,17 +20,17 @@
             <h1 class="login-title-text">ACEest Login</h1>
 
             <div class="input-element-group">
-                <label>Username</label>
+                <label for="auth-username">Username</label>
                 <input type="text" id="auth-username" value="admin" autocomplete="off">
             </div>
 
             <div class="input-element-group">
-                <label>Password</label>
+                <label for="auth-password">Password</label>
                 <input type="password" id="auth-password" value="admin">
             </div>
 
             <div class="btn-centering-wrapper">
-                <button onclick="executeLogin()" class="login-submit-btn">Login</button>
+                <button type="button" onclick="executeLogin()" class="login-submit-btn">Login</button>
             </div>
         </div>
     </div>
@@ -50,7 +50,7 @@
                 <span class="group-box-title">Client Selection Operations</span>
 
                 <div class="input-group">
-                    <label>Select Target Active Profile</label>
+                    <label for="client-selector">Select Target Active Profile</label>
                     <select id="client-selector" onchange="onClientProfileActivated(this.value)" class="combobox">
                         <option value="">-- No Profile Selected --</option>
                     </select>
@@ -59,10 +59,10 @@
                 <hr class="border-neutral-800 my-1">
 
                 <div class="flex flex-col gap-2.5">
-                    <button onclick="triggerAddClient()" class="btn btn-save">Add / Save Client</button>
-                    <button onclick="triggerAIGenerator()" class="btn btn-action">Generate AI Program</button>
-                    <button onclick="triggerPDFReport()" class="btn btn-action">Generate PDF Report</button>
-                    <button onclick="triggerMembershipCheck()" class="btn btn-action">Check Membership</button>
+                    <button type="button" onclick="triggerAddClient()" class="btn btn-save">Add / Save Client</button>
+                    <button type="button" onclick="triggerAIGenerator()" class="btn btn-action">Generate AI Program</button>
+                    <button type="button" onclick="triggerPDFReport()" class="btn btn-action">Generate PDF Report</button>
+                    <button type="button" onclick="triggerMembershipCheck()" class="btn btn-action">Check Membership</button>
                 </div>
             </section>
 
@@ -70,8 +70,8 @@
             <section class="right-panel group-box flex flex-col">
                 <!-- TKINTER STYLE NOTEBOOK TAB SELECTOR HEADERS -->
                 <div class="tabs-notebook-header">
-                    <button id="tab-btn-summary" onclick="switchNotebookTab('summary')" class="tab-link active">Client Summary</button>
-                    <button id="tab-btn-workouts" onclick="switchNotebookTab('workouts')" class="tab-link">Workouts & Exercises</button>
+                    <button type="button" id="tab-btn-summary" onclick="switchNotebookTab('summary')" class="tab-link active">Client Summary</button>
+                    <button type="button" id="tab-btn-workouts" onclick="switchNotebookTab('workouts')" class="tab-link">Workouts & Exercises</button>
                 </div>
 
                 <!-- NOTEBOOK CONTENT BLOCKS -->
@@ -88,7 +88,7 @@
                 <div id="notebook-tab-workouts" class="notebook-pane flex flex-col space-y-4">
                     <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
                         <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Historical Workout Activity Table</span>
-                        <button onclick="openLogWorkoutWindow()" class="bg-[#d4af37] text-black font-bold px-4 py-1.5 rounded text-xs uppercase tracking-wider hover:opacity-90 transition">Add Workout</button>
+                        <button type="button" onclick="openLogWorkoutWindow()" class="bg-[#d4af37] text-black font-bold px-4 py-1.5 rounded text-xs uppercase tracking-wider hover:opacity-90 transition">Add Workout</button>
                     </div>
                     <div class="table-scroll-wrapper flex-1">
                         <table>
@@ -117,11 +117,11 @@
         <div class="modal-dialog-box">
             <h3 class="modal-header-title">Add Workout Entry</h3>
             <div class="input-group">
-                <label>Date (YYYY-MM-DD)</label>
+                <label for="modal-workout-date">Date (YYYY-MM-DD)</label>
                 <input type="date" id="modal-workout-date">
             </div>
             <div class="input-group">
-                <label>Workout Type Focus</label>
+                <label for="modal-workout-type">Workout Type Focus</label>
                 <select id="modal-workout-type" class="combobox">
                     <option value="Strength">Strength</option>
                     <option value="Hypertrophy">Hypertrophy</option>
@@ -130,16 +130,16 @@
                 </select>
             </div>
             <div class="input-group">
-                <label>Duration (min)</label>
+                <label for="modal-workout-duration">Duration (min)</label>
                 <input type="number" id="modal-workout-duration" value="60">
             </div>
             <div class="input-group">
-                <label>Target Execution Notes</label>
+                <label for="modal-workout-notes">Target Execution Notes</label>
                 <textarea id="modal-workout-notes" rows="3" placeholder="Enter session comments..." class="text-black bg-white p-2 border border-neutral-400 rounded"></textarea>
             </div>
             <div class="flex gap-3 pt-2">
-                <button onclick="commitWorkoutEntry()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded text-xs uppercase tracking-wider transition">Save Workout</button>
-                <button onclick="closeModalWindow('workout-modal')" class="w-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white font-bold p-2.5 rounded text-xs uppercase tracking-wider transition">Cancel</button>
+                <button type="button" onclick="commitWorkoutEntry()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded text-xs uppercase tracking-wider transition">Save Workout</button>
+                <button type="button" onclick="closeModalWindow('workout-modal')" class="w-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white font-bold p-2.5 rounded text-xs uppercase tracking-wider transition">Cancel</button>
             </div>
         </div>
     </div>
