@@ -104,7 +104,8 @@ function triggerAddClient() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify({
             name: name
@@ -154,7 +155,8 @@ function triggerAIGenerator() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify({
             name: currentActiveClient,
@@ -200,7 +202,8 @@ function triggerPDFReport() {
     fetch(targetUrl, {
         method: "GET",
         headers: {
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         }
     })
     .then(response => {
@@ -238,7 +241,8 @@ function triggerMembershipCheck() {
     fetch(targetUrl, {
         method: "GET",
         headers: {
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         }
     })
     .then(response => {
@@ -277,7 +281,8 @@ function renderWorkoutLedgerTable() {
     fetch(targetUrl, {
         method: "GET",
         headers: {
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         }
     })
     .then(response => {
@@ -338,7 +343,7 @@ function openLogWorkoutWindow() {
 function commitWorkoutEntry() {
     const dateVal = document.getElementById('modal-workout-date').value;
     let typeVal = document.getElementById('modal-workout-type').value;
-    const durVal = parseFloat(document.getElementById('modal-workout-duration').value) || 60.0;
+    const durVal = Number.parseFloat(document.getElementById('modal-workout-duration').value) || 60.0;
     const notesVal = document.getElementById('modal-workout-notes').value || "";
 
     if (!currentActiveClient) {
@@ -358,7 +363,8 @@ function commitWorkoutEntry() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify(payload)
     })
@@ -430,7 +436,10 @@ function renderPerformanceChartLoop() {
 
     fetch(targetUrl, {
         method: "GET",
-        headers: { "Accept": "application/json" }
+        headers: {
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
     })
     .then(response => {
         if (!response.ok) {
@@ -522,7 +531,8 @@ function executeLogin() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify({
             username: userVal,

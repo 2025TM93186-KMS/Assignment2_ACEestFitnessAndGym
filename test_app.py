@@ -9,6 +9,8 @@ from fpdf import FPDF, XPos, YPos
 def client():
     """Initializes a sandboxed test client instance for testing routes"""
     app.config['TESTING'] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    app.config["SECRET_KEY"] = "test-secret-key"
     with app.test_client() as client:
         yield client
 
