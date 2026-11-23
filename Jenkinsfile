@@ -89,7 +89,7 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
-            when { branch 'master' }
+            when { branch 'main' }
             steps {
                 echo "Pushing ${HUB_USER}/aceest-fitness:${APP_VERSION} to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
@@ -141,7 +141,7 @@ pipeline {
         }
 
         stage('Deploy to Prod') {
-            when { branch 'master' }
+            when { branch 'main' }
             steps {
                 echo "Deploying to PRODUCTION environment at ${env.PROD_URL}..."
                 powershell """
