@@ -6,7 +6,7 @@ pipeline {
 
     environment {
         APP_NAME     = 'aceest-fitness-app'
-        APP_VERSION  = 'V1'
+        APP_VERSION  = 'V2'
         TAG          = "${APP_VERSION}-${BUILD_NUMBER}"
         HUB_USER     = 'devkg1'
         K8S_NS       = 'aceest'

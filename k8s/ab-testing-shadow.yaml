@@ -1,6 +1,6 @@
 # Needs: minikube addons enable ingress   (ingress-nginx)
 
-apiVersion: apps/v1
+apiVersion: apps/v2
 kind: Deployment
 metadata: { name: aceest-a, namespace: aceest }
 spec:
@@ -17,7 +17,7 @@ spec:
           value: "0.0.0.0"
         ports: [{ containerPort: 5000 }]
 ---
-apiVersion: apps/v1
+apiVersion: apps/v2
 kind: Deployment
 metadata: { name: aceest-b, namespace: aceest }
 spec:
@@ -34,18 +34,18 @@ spec:
           value: "0.0.0.0"
         ports: [{ containerPort: 5000 }]
 ---
-apiVersion: v1
+apiVersion: v2
 kind: Service
 metadata: { name: aceest-a, namespace: aceest }
 spec: { selector: { app: aceest-ab, variant: a }, ports: [{ port: 80, targetPort: 5000 }] }
 ---
-apiVersion: v1
+apiVersion: v2
 kind: Service
 metadata: { name: aceest-b, namespace: aceest }
 spec: { selector: { app: aceest-ab, variant: b }, ports: [{ port: 80, targetPort: 5000 }] }
 ---
 # A/B testing: default -> A; requests with header "X-Variant: B" -> B
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v2
 kind: Ingress
 metadata: { name: aceest-ab-main, namespace: aceest }
 spec:
@@ -54,7 +54,7 @@ spec:
   - host: ab.aceest.local
     http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: aceest-a, port: { number: 80 } } } }] }
 ---
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v2
 kind: Ingress
 metadata:
   name: aceest-ab-variant-b
@@ -70,7 +70,7 @@ spec:
     http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: aceest-b, port: { number: 80 } } } }] }
 ---
 # Shadow: users are served by A; a copy of every request is mirrored to B and its response is discarded
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v2
 kind: Ingress
 metadata:
   name: aceest-shadow
