@@ -13,7 +13,7 @@ def client():
 def test_api_root(client):
     response = client.get('/api')
     assert response.status_code == 200
-    assert response.json['version'] == "2.0.1"
+    assert response.json['version'] == "2.2.1"
 
 def test_health_check(client):
     response = client.get('/api/health')
@@ -57,13 +57,11 @@ def test_save_client_success(client):
     else:
         assert response.status_code == 500
 
-
 def test_save_client_validation_missing_fields(client):
     payload = {"name": "", "program": "Fat Loss (FL)"}
     response = client.post('/api/client', json=payload)
     assert response.status_code == 400
     assert "fields are required" in response.json["error"]
-
 
 def test_load_client_success(client):
     # Seed data
@@ -83,12 +81,10 @@ def test_load_client_success(client):
     else:
         assert response.status_code == 500
 
-
 def test_load_client_not_found(client):
     response = client.get('/api/client?name=GhostUser')
     assert response.status_code == 404
     assert "not found" in response.json["error"]
-
 
 def test_save_progress_success(client):
     payload = {
