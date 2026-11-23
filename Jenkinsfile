@@ -89,20 +89,20 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+            when { branch 'master' }
             steps {
                 echo "Pushing ${HUB_USER}/aceest-fitness:${APP_VERSION} to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
-                    bat '''
-                        echo %P%| docker login -u %U% --password-stdin
-                        docker tag %APP_NAME%:%APP_VERSION%-%BUILD_NUMBER% %HUB_USER%/aceest-fitness:%APP_VERSION%-%BUILD_NUMBER%
-                        docker tag %APP_NAME%:%APP_VERSION%-%BUILD_NUMBER% %HUB_USER%/aceest-fitness:%APP_VERSION%
-                        docker push %HUB_USER%/aceest-fitness:%APP_VERSION%-%BUILD_NUMBER%
-                        docker push %HUB_USER%/aceest-fitness:%APP_VERSION%
-                    '''
+                    bat 'echo %P%| docker login -u %U% --password-stdin'
                 }
+                bat """
+                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
+                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}
+                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
+                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}
+                """
             }
         }
-
 
         stage('Deploy to Dev') {
             when { branch 'Develop' }
@@ -141,7 +141,7 @@ pipeline {
         }
 
         stage('Deploy to Prod') {
-            when { branch 'main' }
+            when { branch 'master' }
             steps {
                 echo "Deploying to PRODUCTION environment at ${env.PROD_URL}..."
                 powershell """
