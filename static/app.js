@@ -109,18 +109,21 @@ function saveClient() {
     try {
         const payload = {
             name: name,
-            age: parseInt(ageInput) || 0,
-            height: parseFloat(heightInput) || 0.0,
-            weight: parseFloat(weightInput) || 0.0,
+            age: Number.parseInt(ageInput) || 0,
+            height: Number.parseFloat(heightInput) || 0.0,
+            weight: Number.parseFloat(weightInput) || 0.0,
             program: program,
-            target_weight: parseFloat(targetWeight) || 0.0,
-            target_adherence: parseInt(targetAdherence) || 0,
+            target_weight: Number.parseFloat(targetWeight) || 0.0,
+            target_adherence: Number.parseInt(targetAdherence) || 0,
             membership_expiry: membershipInput
         };
 
         fetch('/api/client', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                 },
             body: JSON.stringify(payload)
         })
         .then(response => {
@@ -157,8 +160,8 @@ function loadClient() {
 
         document.getElementById("client-name").value = profile.name || "";
         document.getElementById("client-age").value = profile.age || 0;
-        document.getElementById("client-height").value = parseFloat(profile.height) || 0.0;
-        document.getElementById("client-weight").value = parseFloat(profile.weight) || 0.0;
+        document.getElementById("client-height").value = Number.parseFloat(profile.height) || 0.0;
+        document.getElementById("client-weight").value = Number.parseFloat(profile.weight) || 0.0;
         document.getElementById("my-combobox").value = profile.program || "";
         document.getElementById("target-weight").value = profile.target_weight || 0.0;
         document.getElementById("target-adherence").value = profile.target_adherence || 0;
@@ -195,11 +198,14 @@ function refreshSummary() {
 
 function saveProgress() {
     if (!currentClient) { alert("Load a valid client first."); return; }
-    const adherence = parseInt(document.getElementById("adherence-slider").value) || 0;
+    const adherence = Number.parseInt(document.getElementById("adherence-slider").value) || 0;
 
     fetch('/api/progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                 },
         body: JSON.stringify({ name: currentClient, adherence: adherence })
     })
     .then(res => res.json())
@@ -241,16 +247,19 @@ function submitWorkout() {
 const payload = {
 name: currentClient,
 workout: document.getElementById("modal-w-type").value,
-duration: parseInt(document.getElementById("modal-w-dur").value) || 60,
+duration: Number.parseInt(document.getElementById("modal-w-dur").value) || 60,
 notes: document.getElementById("modal-w-notes").value,
 ex_name: document.getElementById("modal-w-ex-name").value,
-ex_sets: parseInt(document.getElementById("modal-w-sets").value) || 0,
-ex_reps: parseInt(document.getElementById("modal-w-reps").value) || 0,
-ex_weight: parseFloat(document.getElementById("modal-w-weight").value) || 0.0
+ex_sets: Number.parseInt(document.getElementById("modal-w-sets").value) || 0,
+ex_reps: Number.parseInt(document.getElementById("modal-w-reps").value) || 0,
+ex_weight: Number.parseFloat(document.getElementById("modal-w-weight").value) || 0.0
 };
 fetch('/api/workout', {
 method: 'POST',
-headers: { 'Content-Type': 'application/json' },
+headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
 body: JSON.stringify(payload)
 }).then(() => {
 alert("Workout successfully saved.");
@@ -260,20 +269,23 @@ loadWorkoutHistory();
 }
 function openLogMetricsModal() {
 if (!currentClient) { alert("Select a client first."); return; }
-document.getElementById("modal-m-weight").value = parseFloat(document.getElementById("client-weight").value) || 0.0;
+document.getElementById("modal-m-weight").value = Number.parseFloat(document.getElementById("client-weight").value) || 0.0;
 document.getElementById("metrics-modal").style.display = "flex";
 }
 function submitMetrics() {
 const payload = {
 name: currentClient,
 date: new Date().toISOString().split('T')[0],
-weight: parseFloat(document.getElementById("modal-m-weight").value) || 0,
-waist: parseFloat(document.getElementById("modal-m-waist").value) || 0,
-body_fat: parseFloat(document.getElementById("modal-m-bf").value) || 0
+weight: Number.parseFloat(document.getElementById("modal-m-weight").value) || 0,
+waist: Number.parseFloat(document.getElementById("modal-m-waist").value) || 0,
+body_fat: Number.parseFloat(document.getElementById("modal-m-bf").value) || 0
 };
 fetch('/api/metrics', {
 method: 'POST',
-headers: { 'Content-Type': 'application/json' },
+headers: {
+    'Content-Type': 'application/json',
+    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      },
 body: JSON.stringify(payload)
 }).then(() => {
 alert("Metrics logged safely.");
@@ -364,7 +376,10 @@ function handleLogin() {
     // Ping authorization tables via login pipelines
     fetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                  },
         body: JSON.stringify({ username: userField, password: passField })
     })
     .then(res => {

@@ -16,9 +16,23 @@ import matplotlib.pyplot as plt
 import random
 from fpdf import FPDF, XPos, YPos
 
+import os
+from flask_wtf.csrf import CSRFProtect
+
 
 app = Flask(__name__)
-CORS(app)  # Eliminates Cross-Origin blocking parameters for client integrations
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or os.urandom(24)
+#CORS(app)  # Eliminates Cross-Origin blocking parameters for client integrations
+# 1. Enables CSRF protection to resolve SonarQube High security issue
+csrf = CSRFProtect(app)
+
+# 2. Restricts CORS to explicit origins instead of '*' to resolve SonarQube Medium issue
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS", "http://127.0.0.1:5000,http://localhost:5000"
+).split(",")
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+
+
 CLIENTS_DB = []
 DB_NAME = "aceest_fitness.db"
 
@@ -819,5 +833,7 @@ if __name__ == "__main__":
             # FIX: Safely extracts the value after the '=' sign
             port_number = int(arg.split('=')[1])
 
-    print(f"Launching ACEest Fitness Engine on port {port_number}")
-    app.run(host='0.0.0.0', port=port_number, debug=False)
+    # 3. Defaults to 127.0.0.1 for SonarQube, overridable via FLASK_HOST=0.0.0.0 for Docker
+    host_address = os.getenv("FLASK_HOST", "127.0.0.1")
+    print(f"Launching ACEest Fitness Engine on {host_address}:{port_number}")
+    app.run(host=host_address, port=port_number, debug=False)
