@@ -420,4 +420,3 @@ function showBMIInfo() {
     })
     .catch(err => alert(`Error: ${err.message}`));
 }
-
