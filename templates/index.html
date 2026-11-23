@@ -125,7 +125,7 @@
             try {
                 age = Number.parseInt(ageInput);
                 weight = Number.parseFloat(weightInput);
-                if (isNaN(age) || isNaN(weight)) {
+                if (Number.isNaN(age) || Number.isNaN(weight)) {
                     throw new Error();
                 }
                 const payload = {
