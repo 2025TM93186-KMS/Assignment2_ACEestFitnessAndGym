@@ -7,15 +7,13 @@
     <title>ACEest Functional Fitness</title>
     <link rel="stylesheet" href="/static/style.css">
     <!-- Chart.js for rendering the Progress Chart natively -->
-    <!-- <script src="https://jsdelivr.net"></script> -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
     <!-- Header Block -->
     <header>
-        <h1>ACEest FUNCTIONAL FITNESS SYSTEM v2</h1>
+        <h1>ACEest Functional Fitness System</h1>
     </header>
 
     <!-- Main Container Layout -->
@@ -25,6 +23,14 @@
         <aside class="left-panel">
             <form id="client-form" class="group-box" onsubmit="event.preventDefault();">
                 <span class="group-box-title"> Client Profile </span>
+
+                <!-- Client Selector Dropdown -->
+                <div class="input-group">
+                    <label for="client-selector">Select Client</label>
+                    <select id="client-selector" onchange="onClientSelected(this.value)">
+                        <option value="">-- Select Existing Client --</option>
+                    </select>
+                </div>
 
                 <!-- Client Input Elements -->
                 <div class="input-group">
@@ -38,6 +44,11 @@
                 </div>
 
                 <div class="input-group">
+                    <label for="client-height">Height (cm)</label>
+                    <input type="text" id="client-height" value="0.0">
+                </div>
+
+                <div class="input-group">
                     <label for="client-weight">Weight (kg)</label>
                     <input type="text" id="client-weight" value="0.0">
                 </div>
@@ -46,10 +57,18 @@
                     <label class="select-label" for="my-combobox">Program</label>
                     <select id="my-combobox" class="combobox" name="program">
                         <option value="" selected>-- Select a program --</option>
-                        <option value="Fat Loss (FL)">Fat Loss (FL)</option>
-                        <option value="Muscle Gain (MG)">Muscle Gain (MG)</option>
-                        <option value="Beginner (BG)">Beginner (BG)</option>
                     </select>
+                </div>
+
+                <!-- Goals Section -->
+                <div class="input-group">
+                    <label for="target-weight">Target Weight (kg)</label>
+                    <input type="number" step="0.1" id="target-weight" value="0.0">
+                </div>
+
+                <div class="input-group">
+                    <label for="target-adherence">Target Adherence %</label>
+                    <input type="number" id="target-adherence" value="0">
                 </div>
 
                 <div class="input-group">
@@ -57,12 +76,14 @@
                     <input type="range" id="adherence-slider" min="0" max="100" value="0" oninput="document.getElementById('adherence-val').innerText = this.value">
                 </div>
 
-                <!-- Interface Control Buttons -->
-                <div class="button-group">
-                    <button type="button" class="btn btn-export" onclick="saveClient()">Save Client</button>
-                    <button type="button" class="btn btn-export" onclick="loadClient()">Load Client</button>
-                    <button type="button" class="btn btn-export" onclick="saveProgress()">Save Progress</button>
-                    <button type="button" class="btn btn-export" onclick="viewProgress()">View Progress Chart</button>
+                <!-- Interface Control Buttons Structure Map -->
+                <div class="button-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px;">
+                    <button type="button" class="btn btn-export" onclick="saveClient()" style="grid-column: span 1; padding: 10px; font-weight: bold; background:#d4af37; color:#000;">Save Client</button>
+                    <button type="button" class="btn btn-export" onclick="loadClient()" style="grid-column: span 1; padding: 10px; font-weight: bold; background:#444; color:#fff;">Load Client</button>
+                    <button type="button" class="btn btn-export" onclick="saveProgress()" style="grid-column: span 2; padding: 10px; font-weight: bold; background:#444; color:#fff;">Save Weekly Progress</button>
+                    <button type="button" class="btn btn-export" onclick="openLogWorkoutModal()" style="grid-column: span 1; padding: 10px; font-weight: bold; background:#444; color:#fff;">Log Workout</button>
+                    <button type="button" class="btn btn-export" onclick="openLogMetricsModal()" style="grid-column: span 1; padding: 10px; font-weight: bold; background:#444; color:#fff;">Log Body Metrics</button>
+                    <button type="button" class="btn btn-export" onclick="loadWorkoutHistory()" style="grid-column: span 2; padding: 10px; font-weight: bold; background-color: #333; color: #d4af37; border: 1px solid #d4af37;">View Workout History</button>
                 </div>
             </form>
         </aside>
@@ -70,308 +91,97 @@
         <!-- Right Panel: Display Elements, Tables, and Charts -->
         <main class="right-panel">
 
-            <!-- Weekly Workout Chart Display Box -->
-            <div class="group-box text-block-frame">
-                <span class="group-box-title"> Client Summary </span>
-                <div id="work-label" class="scrollable-block">—</div>
+            <!-- Horizontal Tab Selection Architecture Layout -->
+            <div class="tab-controls" style="margin-bottom: 20px; display: flex; gap: 4px; border-bottom: 2px solid #333; width: 100%;">
+                <button type="button" class="btn" id="btn-summary" onclick="switchTab('summary')" style="flex: 1; max-width: 220px; padding: 12px; background: #222; color: #d4af37; border: none; border-bottom: 3px solid #d4af37; cursor: pointer; font-weight: bold; text-align: center;">Client Summary</button>
+                <button type="button" class="btn" id="btn-analytics" onclick="switchTab('analytics')" style="flex: 1; max-width: 220px; padding: 12px; background: #111; color: #888; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: bold; text-align: center;">Progress & Analytics</button>
             </div>
 
-            <!-- <div style="width: 800px; max-width: 100%; margin: 0 auto; background-color: white;">
-                <canvas id="adherenceChart"></canvas>
-            </div> -->
+            <!-- Tab 1: Summary Output Shell -->
+            <div id="tab-summary" class="tab-content">
+                <div class="group-box text-block-frame">
+                    <span class="group-box-title"> Client Summary </span>
+                    <pre id="work-label" class="scrollable-block" style="font-family: 'Consolas', monospace; white-space: pre-wrap; background:#111; color:#fff; padding: 10px; border-radius:4px;">— No Client Loaded —</pre>
+                </div>
 
-            <div style="margin-top: 20px;">
-                <img id="matplotlibChart" src="" alt="Chart will appear here" style="max-width:100%; display:none;">
+                <!-- Workout History Section -->
+                <div class="group-box" style="margin-top: 20px;">
+                    <span class="group-box-title"> Workout History </span>
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+                        <table id="workout-history-table" style="width:100%; border-collapse: collapse; text-align: left;">
+                            <thead>
+                                <tr style="background-color: #333; color: #d4af37;">
+                                    <th style="padding: 8px;">Date</th>
+                                    <th style="padding: 8px;">Type</th>
+                                    <th style="padding: 8px;">Duration (min)</th>
+                                    <th style="padding: 8px;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" style="padding: 8px; text-align: center;">No history logs loaded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- Diet Chart Display Box (Tamil Nadu Context) -->
+            <!-- Tab 2: Analytics & Canvas Presentation Context -->
+            <div id="tab-analytics" class="tab-content" style="display: none; padding-top: 15px;">
+                <!-- Modernized Row Layout For Analytics Control Elements -->
+                <div class="button-group" style="display: flex; flex-direction: row; justify-content: flex-start; gap: 10px; margin-bottom: 20px; width: 100%;">
+                    <button type="button" class="btn" onclick="renderAdherenceChart()" style="flex: 1; max-width: 200px; padding: 10px; background: #333; color: #fff; border: 1px solid #555; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: background 0.2s;">Adherence Chart</button>
+                    <button type="button" class="btn" onclick="renderWeightChart()" style="flex: 1; max-width: 200px; padding: 10px; background: #333; color: #fff; border: 1px solid #555; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: background 0.2s;">Weight Trend Chart</button>
+                    <button type="button" class="btn" onclick="showBMIInfo()" style="flex: 1; max-width: 200px; padding: 10px; background: #333; color: #fff; border: 1px solid #555; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: background 0.2s;">BMI & Risk Info</button>
+                </div>
+
+                <!-- High-Contrast Analytics Rendering Canvas Envelope Box -->
+                <div class="group-box" style="background-color: #ffffff; padding: 20px; border: 2px solid #d4af37; border-radius: 6px; min-height: 380px;">
+                    <span class="group-box-title" id="chart-title" style="color: #d4af37; font-weight: bold; font-size: 14px; background-color: #1a1a1a;">Weekly Adherence Chart</span>
+                    <div style="width: 100%; max-width: 100%; height: 320px; position: relative; margin-top: 10px;">
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </div>
 
 
-            <!-- Dynamic Live Calorie Output Label -->
-
-
-            <!-- CLIENT LIST TABLE -->
-
-
-            <!-- PROGRESS CHART -->
-
+            </div>
 
         </main>
     </div>
 
-    <!-- Interface Logic Framework -->
-    <script>
-        // Local state storage array to keep records in memory matching Python lists
-        const clients = [];
+     <!-- Modals for Logging Actions -->
+    <div id="workout-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+        <div class="group-box" style="background:#1a1a1a; width:400px; padding:20px; border:1px solid #d4af37;">
+            <span class="group-box-title">Log Workout</span>
+            <div class="input-group"><label for="modal-w-type">Workout Type</label><select id="modal-w-type"><option>Strength</option><option>Hypertrophy</option><option>Conditioning</option><option>Mixed</option><option>Mobility</option></select></div>
+            <div class="input-group"><label for="modal-w-dur">Duration (min)</label><input type="number" id="modal-w-dur" value="60"></div>
+            <div class="input-group"><label for="modal-w-ex-name">Exercise Name</label><input type="text" id="modal-w-ex-name"></div>
+            <div class="input-group"><label for="modal-w-sets">Sets</label><input type="number" id="modal-w-sets" value="3"></div>
+            <div class="input-group"><label for="modal-w-reps">Reps</label><input type="number" id="modal-w-reps" value="10"></div>
+            <div class="input-group"><label for="modal-w-weight">Weight (kg)</label><input type="number" step="0.1" id="modal-w-weight" value="0.0"></div>
+            <div class="input-group"><label for="modal-w-notes">Notes</label><input type="text" id="modal-w-notes"></div>
+            <div class="button-group" style="margin-top:10px; display:flex; flex-direction:row; gap:10px;">
+                <button type="button" class="btn" onclick="submitWorkout()" style="background:#d4af37; color:#000;">Save Workout</button>
+                <button type="button" class="btn" onclick="document.getElementById('workout-modal').style.display='none'" style="background:#444; color:#fff;">Cancel</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Body Metrics Overlay Modal Popup -->
+    <div id="metrics-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+        <div class="group-box" style="background:#1a1a1a; width:350px; padding:20px; border:1px solid #d4af37;">
+            <span class="group-box-title">Log Body Metrics</span>
+            <div class="input-group"><label for="modal-m-weight">Weight (kg)</label><input type="number" step="0.1" id="modal-m-weight" value="0.0"></div>
+            <div class="input-group"><label for="modal-m-waist">Waist (cm)</label><input type="number" step="0.1" id="modal-m-waist" value="0.0"></div>
+            <div class="input-group"><label for="modal-m-bf">Bodyfat (%)</label><input type="number" step="0.1" id="modal-m-bf" value="0.0"></div>
+            <div class="button-group" style="margin-top:10px; display:flex; flex-direction:row; gap:10px;">
+                <button type="button" class="btn" onclick="submitMetrics()" style="background:#d4af37; color:#000;">Save Metrics</button>
+                <button type="button" class="btn" onclick="document.getElementById('metrics-modal').style.display='none'" style="background:#444; color:#fff;">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-        // Equivalent map configuration block directly matching self.programs data structure
-        const programs = {
-            "Fat Loss (FL)": {"factor": 22},
-            "Muscle Gain (MG)": {"factor": 35},
-            "Beginner (BG)": {"factor": 26}
-        };
-
-        document.addEventListener("DOMContentLoaded", function() {
-
-        });
-
-
-        // Corresponds to Tkinter's 'save_client' method
-        function saveClient() {
-            const name = document.getElementById("client-name").value.trim();
-            const program = document.getElementById("my-combobox").value;
-            const ageInput = document.getElementById("client-age").value || 0;
-            const weightInput = document.getElementById("client-weight").value || 0;
-            const adherence = Number.parseInt(document.getElementById("adherence-slider").value, 10) || 0;
-
-
-            if (!name || !program) {
-                alert("Please fill client name and program.");
-                return;
-            }
-
-            let age, weight;
-            try {
-                age = Number.parseInt(ageInput);
-                weight = Number.parseFloat(weightInput);
-                if (Number.isNaN(age) || Number.isNaN(weight)) {
-                    throw new Error();
-                }
-                const payload = {
-                name: name,
-                age: age,
-                weight: weight,
-                program: program,
-                progress: adherence
-                };
-
-            fetch('/api/client', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.error || "Server validation rejected"); });
-                }
-                return response.json();
-            })
-            .then(data => {
-                // 4. Pop standard alert using the exact processing string returned from Python
-                // alert(`${data.success}\nAdherence level: ${data.adherence}%\nEstimated Calories: ${data.calculated_calories} kcal`);
-                alert(data.message)
-            })
-            .catch(error => {
-                console.error("Save Client Error:", error);
-                alert(`Error: ${error.message}`);
-            });
-
-            } catch (e) {
-                alert(e);
-                return;
-            }
-        }
-
-        function loadClient(){
-            try{
-
-            const name = document.getElementById("client-name").value.trim();
-
-            fetch('/api/client?name=' + encodeURIComponent(name), {
-                method: 'GET'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => {
-                        throw new Error(err.error || "Server validation rejected");
-                    });
-                }
-                return response.json(); // Extracts raw data into JSON mapping structures
-            })
-            .then(data => {
-                console.log("Client payload safely fetched:", data);
-
-                if (data) {
-                    document.getElementById("my-combobox").value = data.program || "";
-                    document.getElementById("client-age").value = data.age || "0";
-                    document.getElementById("client-weight").value = data.weight || "0.0";
-
-                    // Update slider track view nodes if present in your markup
-                    if (document.getElementById("adherence-slider")) {
-                        document.getElementById("adherence-slider").value = Number.parseInt(data.progress) || 0;
-                        document.getElementById("adherence-val").innerText = data.progress || 0;
-                    }
-
-                    // Trigger workout plan updates instantly to match your selector dropdown selection
-                    if (typeof updateProgram === "function") {
-                        updateProgram(data.program);
-                    }
-                }
-            })
-            .catch(error => {
-                console.error("Load Client Error:", error);
-                alert(`Error: ${error.message}`);
-            });
-
-
-            }
-            catch (e) {
-                alert(e);
-                return;
-            }
-
-        }
-
-        function saveProgress(){
-            try {
-            const name = document.getElementById("client-name").value.trim();
-            const adherence = Number.parseInt(document.getElementById("adherence-slider").value) || 0;
-            const payload = {
-                name: name,
-                adherence: adherence
-                };
-
-            fetch('/api/progress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.error || "Server validation rejected"); });
-                }
-                return response.json();
-            })
-            .then(data => {
-                // alert(`${data.success}\nAdherence level: ${data.adherence}%\nEstimated Calories: ${data.calculated_calories} kcal`);
-                alert(data.message)
-            })
-            .catch(error => {
-                console.error("Save Client Error:", error);
-                alert(`Error: ${error.message}`);
-            });
-
-            }
-            catch (e) {
-                alert(e);
-                return;
-            }
-        }
-
-        // Move this variable outside the function to keep track of the active chart instance
-            let adherenceChartInstance = null;
-
-
-        function viewProgress_CORRECT() {
-            const name = document.getElementById("client-name").value.trim();
-            if (!name) return alert("Please enter a name");
-
-            fetch('/api/progress?name=' + encodeURIComponent(name))
-                .then(response => response.json())
-                .then(data => {
-                    const chartImg = document.getElementById('matplotlibChart');
-
-                    // Inject the Base64 image string directly into the image source
-                    chartImg.src = data.image;
-                    chartImg.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error("Error loading graph:", error);
-                });
-        }
-
-        function viewProgress() {
-                const name = document.getElementById("client-name").value.trim();
-                if (!name) {
-                    alert("Please enter a client name.");
-                    return;
-                }
-
-                fetch('/api/progress_chart?name=' + encodeURIComponent(name), {
-                    method: 'GET'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw new Error(err.error || "Server validation error"); });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data.image) {
-                        throw new Error("No chart image data received from the server.");
-                    }
-
-                    //const newWindow = window.open();
-
-                    const windowFeatures = "width=850,height=520,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no";
-                    const newWindow = window.open("", "MatplotlibFigure", windowFeatures);
-
-                    if (newWindow) {
-                        newWindow.document.write(`
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <title>Weekly Adherence Progress – ${name}</title>
-                                <style>
-                                    body {
-                                        margin: 0;
-                                        display: flex;
-                                        justify-content: center;
-                                        align-items: center;
-                                        height: 100vh;
-                                        background-color: #f0f0f0;
-                                        font-family: sans-serif;
-                                    }
-                                    img {
-                                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                                        background: white;
-                                        padding: 10px;
-                                        border-radius: 4px;
-                                        max-width: 90%;
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                <img src="${data.image}" alt="Matplotlib Chart">
-                            </body>
-                            </html>
-                        `);
-                        newWindow.document.close(); // Tells the browser parsing is finished
-                    } else {
-                        alert("Pop-up blocked! Please allow pop-ups for this website to view the progress chart.");
-                    }
-                })
-                .catch(error => {
-                    console.error("View Progress Error:", error);
-                    alert(`Error: ${error.message}`);
-                });
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     </script>
+    <!-- Decoupled JavaScript Script Link Target Entry -->
+    <script src="/static/app.js"></script>
 </body>
 </html>
+
