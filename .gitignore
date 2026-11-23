@@ -8,3 +8,6 @@ myenv/
 .scannerwork/
 .coverage
 coverage.xml
+*.db
+*.xml
+.idea/dbnavigator.xml
