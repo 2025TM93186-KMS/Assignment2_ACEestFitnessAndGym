@@ -65,14 +65,14 @@ spec:
   rules:
   - host: ab.aceest.local
     http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: aceest-b, port: { number: 80 } } } }] }
----
+--- Shadow
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: aceest-shadow
   namespace: aceest
   annotations:
-    nginx.ingress.kubernetes.io/mirror-target: "http://cluster.local"
+    nginx.ingress.kubernetes.io/mirror-target: "http://aceest-b.aceest.svc.cluster.local$request_uri"
     nginx.ingress.kubernetes.io/mirror-request-body: "on"
 spec:
   ingressClassName: nginx
