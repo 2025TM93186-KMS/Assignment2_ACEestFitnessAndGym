@@ -36,34 +36,36 @@ pipeline {
         stage('Docker Compression Assembly') {
             steps {
                 echo 'Assembling cached container virtualization blocks on Docker Engine...'
-                bat "docker build -t ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ."
+                sh "docker build -t ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ."
             }
         }
 
         stage('Static Lint Analysis') {
             steps {
                 echo 'Validating Python syntax compilation structure inside the Docker Container...'
-                bat "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python -m py_compile app.py"
+                sh "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python -m py_compile app.py"
             }
         }
 
         stage('Automated Pytest Execution') {
             steps {
                 echo 'Invoking component assertion tests inside clean container context...'
-                bat "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} pytest test_app.py"
+                sh "docker run --rm ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} pytest test_app.py"
             }
         }
 
         stage('Coverage Report') {
             steps {
                 echo 'Generating coverage report for SonarQube...'
-                bat """
-                    docker rm -f aceest-cov-${BUILD_NUMBER} 2>nul
+                sh """
+                    docker rm -f aceest-cov-${BUILD_NUMBER} 2>/dev/null || true
+                    set +e
                     docker run --name aceest-cov-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} sh -c "pip install -q pytest-cov && pytest -q --cov=app --cov-report=xml:coverage.xml test_app.py"
-                    set RC=%ERRORLEVEL%
+                    RC=\$?
+                    set -e
                     docker cp aceest-cov-${BUILD_NUMBER}:/app/coverage.xml .
-                    docker rm -f aceest-cov-${BUILD_NUMBER}
-                    exit /b %RC%
+                    docker rm -f aceest-cov-${BUILD_NUMBER} 2>/dev/null || true
+                    exit \$RC
                 """
             }
         }
@@ -74,7 +76,7 @@ pipeline {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('SonarQube') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\" -Dsonar.projectVersion=${APP_VERSION}"
+                        sh "\"${scannerHome}/bin/sonar-scanner\" -Dsonar.projectVersion=${APP_VERSION}"
                     }
                 }
             }
@@ -93,14 +95,14 @@ pipeline {
             steps {
                 echo "Pushing ${HUB_USER}/aceest-fitness:${APP_VERSION} to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
-                    bat 'echo %P%| docker login -u %U% --password-stdin'
+                    sh '''
+                        echo "$P" | docker login -u "$U" --password-stdin
+                        docker tag "${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER}" "${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}"
+                        docker tag "${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER}" "${HUB_USER}/aceest-fitness:${APP_VERSION}"
+                        docker push "${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}"
+                        docker push "${HUB_USER}/aceest-fitness:${APP_VERSION}"
+                    '''
                 }
-                bat """
-                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
-                    docker tag ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} ${HUB_USER}/aceest-fitness:${APP_VERSION}
-                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
-                    docker push ${HUB_USER}/aceest-fitness:${APP_VERSION}
-                """
             }
         }
 
@@ -108,10 +110,9 @@ pipeline {
             when { branch 'Develop' }
             steps {
                 echo "Deploying to DEV environment at ${env.DEV_URL}..."
-                powershell """
-                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
-                    if (\$containers) { docker stop \$containers }
-                    docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-dev-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
+                sh """
+                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                    docker run -d -e FLASK_HOST=0.0.0.0 -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-dev-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
                 """
             }
         }
@@ -120,10 +121,9 @@ pipeline {
             when { branch 'Test' }
             steps {
                 echo "Deploying to TEST environment at ${env.TEST_URL}..."
-                powershell """
-                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
-                    if (\$containers) { docker stop \$containers }
-                    docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-test-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
+                sh """
+                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                    docker run -d -e FLASK_HOST=0.0.0.0 -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-test-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
                 """
             }
         }
@@ -132,10 +132,9 @@ pipeline {
             when { branch 'Stage' }
             steps {
                 echo "Deploying to STAGING environment at ${env.STAGE_URL}..."
-                powershell """
-                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
-                    if (\$containers) { docker stop \$containers }
-                    docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-stage-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
+                sh """
+                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                    docker run -d -e FLASK_HOST=0.0.0.0 -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-stage-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
                 """
             }
         }
@@ -144,10 +143,9 @@ pipeline {
             when { branch 'main' }
             steps {
                 echo "Deploying to PRODUCTION environment at ${env.PROD_URL}..."
-                powershell """
-                    \$containers = docker ps -q --filter "publish=${CURRENT_PORT}"
-                    if (\$containers) { docker stop \$containers }
-                    docker run -d -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-prod-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
+                sh """
+                    docker ps -q --filter "publish=${CURRENT_PORT}" | xargs -r docker stop
+                    docker run -d -e FLASK_HOST=0.0.0.0 -p ${CURRENT_PORT}:${CURRENT_PORT} --name ${APP_NAME}-prod-${BUILD_NUMBER} ${APP_NAME}:${APP_VERSION}-${BUILD_NUMBER} python app.py --port=${CURRENT_PORT}
                 """
             }
         }
@@ -156,7 +154,7 @@ pipeline {
             when { branch 'main' }
             steps {
                 echo 'Rolling update on Kubernetes...'
-                bat """
+                sh """
                     kubectl apply -f k8s/namespace.yaml -f k8s/rolling.yaml
                     kubectl -n ${K8S_NS} set image deployment/aceest-rolling app=${HUB_USER}/aceest-fitness:${APP_VERSION}-${BUILD_NUMBER}
                     kubectl -n ${K8S_NS} rollout status deployment/aceest-rolling --timeout=120s
@@ -181,7 +179,7 @@ pipeline {
             script {
                 if (env.BRANCH_NAME == 'main') {
                     echo 'Rolling back Kubernetes deployment to the last stable revision...'
-                    bat "kubectl -n ${K8S_NS} rollout undo deployment/aceest-rolling || exit /b 0"
+                    sh "kubectl -n ${K8S_NS} rollout undo deployment/aceest-rolling || true"
                 }
                 try {
                     if (env.NOTIFICATION_EMAIL) {
